@@ -1,0 +1,4023 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SIRA GO | Centre de Contrôle Sécurité</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #151515;
+            --bg-card: #1e1e1e;
+            --accent-blue: #00a8ff;
+            --accent-red: #ff3838;
+            --accent-green: #00ff9d;
+            --accent-yellow: #ffd32a;
+            --text-primary: #f8f9fa;
+            --text-secondary: #a0a0a0;
+            --border-color: #2d2d2d;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* DARK MATTER / WAR ROOM STYLES */
+        .war-room-overlay {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            display: flex;
+            gap: 20px;
+            pointer-events: none;
+        }
+
+        .war-room-overlay>* {
+            pointer-events: auto;
+        }
+
+        .shake-monitor {
+            background: rgba(15, 15, 15, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent-red);
+            padding: 10px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 0 20px rgba(255, 56, 56, 0.2);
+        }
+
+        .shake-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-red);
+        }
+
+        .flux-legend {
+            background: rgba(15, 15, 15, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 12px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .flux-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .flux-item i {
+            font-size: 1rem;
+        }
+
+        .wifi-flux {
+            color: var(--accent-blue);
+        }
+
+        .sms-flux {
+            color: var(--accent-yellow);
+        }
+
+        /* FAKE CODE ALERT */
+        @keyframes fakeCodeFlash {
+
+            0%,
+            100% {
+                background: rgba(138, 43, 226, 0.1);
+                border-color: rgba(138, 43, 226, 0.5);
+            }
+
+            50% {
+                background: rgba(138, 43, 226, 0.4);
+                border-color: #8a2be2;
+                box-shadow: 0 0 30px rgba(138, 43, 226, 0.6);
+            }
+        }
+
+        .alert-fake-code {
+            animation: fakeCodeFlash 0.8s infinite;
+            border-width: 2px !important;
+            color: white !important;
+            display: none;
+            z-index: 1002;
+        }
+
+        /* Ondes Radio pour Micro Actif sur Carte */
+        @keyframes ripple {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(3);
+                opacity: 0;
+            }
+        }
+
+        .radio-pulse {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 56, 56, 0.4);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .radio-pulse::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            border-radius: 50%;
+            animation: ripple 1.5s infinite;
+        }
+
+        /* Panneau de Détails Véhicule */
+        #vehicle-details-panel {
+            background: rgba(26, 26, 46, 0.95);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 15px;
+            padding-top: 15px;
+            display: none;
+            /* Affiché via JS */
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .mic-controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-mic-dual {
+            padding: 8px;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            transition: all 0.2s;
+        }
+
+        .btn-mic-dual.active {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            box-shadow: 0 0 10px rgba(255, 56, 56, 0.5);
+        }
+
+        .admin-exclusive-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .admin-exclusive-controls.hidden {
+            transform: translateX(100px);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .tools-toggle-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1002;
+            width: 50px;
+            height: 50px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 168, 255, 0.4);
+            border: 2px solid var(--bg-secondary);
+        }
+
+
+        /* Empilement des alertes */
+        .alertes-stack {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1005;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .alerte-item {
+            background: rgba(26, 26, 46, 0.95);
+            border-left: 5px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            animation: slideInLeft 0.3s ease;
+            position: relative;
+        }
+
+        .alerte-item.faux-code {
+            border-left-color: #6c5ce7;
+        }
+
+        /* ============================================= */
+        /* NOUVEAU SYSTÈME KYC PLEIN ÉCRAN - PREMIUM */
+        /* ============================================= */
+
+        .kyc-fullscreen-wrapper {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(160deg, #0c0c1d 0%, #1a1a2e 50%, #0c0c1d 100%);
+        }
+
+        .kyc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 28px;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.08), rgba(0, 168, 255, 0.05));
+            border-bottom: 1px solid rgba(108, 92, 231, 0.15);
+            flex-shrink: 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .kyc-header h5 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            background: linear-gradient(135deg, #fff, #a29bfe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .kyc-stat-mini {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .kyc-stat-mini .stat-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+        }
+
+        .kyc-main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            /* MODIFICATION: La colonne de gauche (tableau chauffeur) prend tout l'espace disponible */
+            gap: 0;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        /* Liste Chauffeurs - OCCUPE TOUT L'ESPACE */
+        .kyc-drivers-list {
+            background: rgba(255, 255, 255, 0.015);
+            border-right: 1px solid rgba(108, 92, 231, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            width: 100%;
+            /* Prend toute la largeur de la colonne */
+        }
+
+        .kyc-list-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.3px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .kyc-list-header .badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .kyc-list-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 8px;
+        }
+
+        .kyc-item {
+            padding: 16px 18px;
+            margin-bottom: 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+        }
+
+        .kyc-item:hover {
+            background: rgba(108, 92, 231, 0.08);
+            border-color: rgba(108, 92, 231, 0.2);
+            transform: translateX(4px);
+        }
+
+        .kyc-item.active {
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.15), rgba(0, 168, 255, 0.1));
+            border-color: rgba(108, 92, 231, 0.4);
+            border-left: 4px solid #6c5ce7;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.15);
+        }
+
+        .kyc-item .driver-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #fff;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .kyc-item .driver-avatar.pending {
+            background: linear-gradient(135deg, #e17055, #fdcb6e);
+            box-shadow: 0 4px 12px rgba(225, 112, 85, 0.3);
+        }
+
+        .kyc-item .driver-avatar.verified {
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);
+        }
+
+        .kyc-item .driver-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .kyc-item .driver-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #f0f0f0;
+            margin-bottom: 2px;
+        }
+
+        .kyc-item .driver-vehicle {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kyc-item .driver-vehicle i {
+            font-size: 0.7rem;
+            color: rgba(108, 92, 231, 0.6);
+        }
+
+        .kyc-item .driver-phone {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .kyc-item .driver-phone i {
+            font-size: 0.65rem;
+        }
+
+        .kyc-item .kyc-status-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .kyc-item .kyc-status-badge.to-verify {
+            background: rgba(253, 203, 110, 0.15);
+            color: #fdcb6e;
+            border: 1px solid rgba(253, 203, 110, 0.3);
+        }
+
+        .kyc-item .kyc-status-badge.verified {
+            background: rgba(0, 184, 148, 0.15);
+            color: #55efc4;
+            border: 1px solid rgba(0, 184, 148, 0.3);
+        }
+
+        .kyc-item .doc-counter {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 3px 10px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .kyc-item .doc-counter i {
+            font-size: 0.7rem;
+            color: var(--accent-blue);
+        }
+
+        .kyc-progress-track {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.06);
+            width: 100%;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .kyc-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6c5ce7, #a29bfe, #00a8ff);
+            border-radius: 3px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px rgba(108, 92, 231, 0.4);
+        }
+
+        /* Zone Prévisualisation */
+        .kyc-preview-zone {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+            overflow: hidden;
+        }
+
+        .kyc-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            background: radial-gradient(ellipse at center, rgba(108, 92, 231, 0.06) 0%, transparent 70%);
+            position: relative;
+        }
+
+        .kyc-empty::before {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.1), transparent 70%);
+            animation: emptyPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes emptyPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 1;
+            }
+        }
+
+        .kyc-empty i {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            opacity: 0.25;
+            color: #6c5ce7;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kyc-empty h5 {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .kyc-empty p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .kyc-active-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .kyc-doc-viewer {
+            flex: 1;
+            background: linear-gradient(180deg, #000, #060612);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kyc-doc-image {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: zoom-in;
+            border-radius: 8px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(108, 92, 231, 0.1);
+        }
+
+        .kyc-zoom-hint {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            padding: 8px 14px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .kyc-doc-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 14px 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-x: auto;
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+
+        .thumb-card {
+            min-width: 120px;
+            height: 74px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 10px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .thumb-card:hover {
+            background: rgba(108, 92, 231, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .thumb-card.active {
+            border-color: #6c5ce7;
+            background: linear-gradient(135deg, rgba(108, 92, 231, 0.2), rgba(0, 168, 255, 0.1));
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.2);
+        }
+
+        .thumb-card i {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .thumb-card .small {
+            font-size: 0.68rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .doc-status-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 2px 7px;
+            border-radius: 8px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kyc-control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 24px;
+            background: rgba(255, 255, 255, 0.025);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            backdrop-filter: blur(5px);
+        }
+
+        .kyc-doc-info h6 {
+            margin-bottom: 2px;
+            font-weight: 700;
+        }
+
+        .kyc-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .kyc-actions .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 8px 18px;
+            transition: all 0.2s;
+        }
+
+        .kyc-actions .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .kyc-rejection-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 16px 24px;
+            background: rgba(255, 56, 56, 0.04);
+            border-top: 1px solid rgba(255, 56, 56, 0.15);
+            flex-shrink: 0;
+        }
+
+        .kyc-reason-btn {
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .kyc-reason-btn:hover {
+            background: rgba(255, 56, 56, 0.1);
+            border-color: var(--accent-red);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .kyc-final-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 24px;
+            background: rgba(255, 255, 255, 0.02);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+        }
+
+        .kyc-final-actions .btn {
+            border-radius: 10px;
+            font-weight: 600;
+            padding: 10px 22px;
+        }
+
+        /* Masquer la top-bar pour KYC */
+        .kyc-fullscreen .top-bar {
+            display: none !important;
+        }
+
+        .kyc-fullscreen .content-section {
+            height: 100vh !important;
+        }
+
+        #kyc-section .section-content {
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Animation d'entrée KYC items */
+        @keyframes kycSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .kyc-item {
+            animation: kycSlideIn 0.3s ease forwards;
+        }
+
+        .kyc-item:nth-child(2) {
+            animation-delay: 0.05s;
+        }
+
+        .kyc-item:nth-child(3) {
+            animation-delay: 0.1s;
+        }
+
+        .kyc-item:nth-child(4) {
+            animation-delay: 0.15s;
+        }
+
+        .kyc-item:nth-child(5) {
+            animation-delay: 0.2s;
+        }
+
+        .alerte-item h6 {
+            margin-bottom: 5px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alerte-item .actions-alerte {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        /* Bouton micro ciblé */
+        .btn-mic-ciblé {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-mic-ciblé.actif {
+            background: var(--accent-red);
+            color: white;
+            border-color: var(--accent-red);
+            box-shadow: 0 0 15px rgba(255, 56, 56, 0.4);
+            animation: pulse-mic 1s infinite;
+        }
+
+        @keyframes pulse-mic {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+
+        .tools-toggle-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .tools-toggle-btn.active i {
+            transform: rotate(45deg);
+        }
+
+        .btn-mic-active {
+            background: var(--accent-red) !important;
+            box-shadow: 0 0 15px rgba(255, 56, 56, 0.6);
+            animation: pulseRecord 1.5s infinite;
+        }
+
+
+        @keyframes pulseRecord {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* SIDEBAR RÉTRACTABLE */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar.collapsed .sidebar-header h3,
+        .sidebar.collapsed .sidebar-header p,
+        .sidebar.collapsed .nav-link span,
+        .sidebar.collapsed .nav-badge,
+        .sidebar.collapsed .text-secondary,
+        .sidebar.collapsed .text-success,
+        .sidebar.collapsed .fw-bold,
+        .sidebar.collapsed .small {
+            display: none;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            padding: 15px;
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .sidebar.collapsed .nav-link i {
+            margin-right: 0;
+            font-size: 1.2rem;
+        }
+
+        .sidebar.collapsed .toggle-btn i {
+            transform: rotate(180deg);
+        }
+
+        .toggle-btn {
+            position: absolute;
+            right: -12px;
+            top: 20px;
+            width: 24px;
+            height: 24px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .toggle-btn i {
+            font-size: 12px;
+            color: white;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(0, 168, 255, 0.2), transparent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), #0097e6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .logo-icon i {
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 15px 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            margin: 5px 10px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: rgba(0, 168, 255, 0.15);
+            color: var(--accent-blue);
+            border-left-color: var(--accent-blue);
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .nav-badge.warning {
+            background: var(--accent-yellow);
+            color: #000;
+            animation: pulseWarning 2s infinite;
+        }
+
+        .nav-badge.danger {
+            background: var(--accent-red);
+            color: white;
+            animation: pulseDanger 1.5s infinite;
+        }
+
+        @keyframes pulseWarning {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes pulseDanger {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 56, 56, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(255, 56, 56, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 56, 56, 0);
+            }
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .top-bar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* CARTE - SECTION PRINCIPALE */
+        #map-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-primary);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            /* Darker background for transition */
+        }
+
+
+        /* TABLEAU DE CONTRÔLE FLOTTANT */
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .control-panel.collapsed {
+            right: -330px;
+        }
+
+        .panel-toggle {
+            position: absolute;
+            left: -40px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            background: var(--accent-blue);
+            border-radius: 8px 0 0 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .panel-toggle:hover {
+            background: #0097e6;
+        }
+
+        /* VÉHICULES SUR LA CARTE */
+        .vehicle-marker {
+            width: 36px;
+            height: 36px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 20px rgba(0, 168, 255, 0.5);
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .vehicle-marker .vehicle-number {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--bg-primary);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid white;
+        }
+
+        .vehicle-marker.warning {
+            background: var(--accent-yellow);
+            box-shadow: 0 0 25px rgba(255, 211, 42, 0.6);
+            animation: warningBlink 2s infinite;
+        }
+
+        .vehicle-marker.danger {
+            background: var(--accent-red);
+            box-shadow: 0 0 30px rgba(255, 56, 56, 0.7);
+            animation: dangerBlink 1s infinite;
+        }
+
+        .vehicle-marker.on-trip {
+            background: var(--accent-green);
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+        }
+
+        @keyframes warningBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes dangerBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
+
+        /* MODALS */
+        .modal-custom {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-custom.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content-custom {
+            background: var(--bg-card);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 2px solid var(--accent-blue);
+        }
+
+        /* DOCUMENT VIEWER */
+        .document-viewer {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .document-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .document-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .document-card.verified {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+
+        .document-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--accent-blue);
+        }
+
+        .document-card.verified .document-icon {
+            color: var(--accent-green);
+        }
+
+        /* CONVERSATION */
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.sent {
+            background: var(--accent-blue);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.received {
+            background: var(--bg-secondary);
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .message.sent .message-time {
+            text-align: right;
+        }
+
+        .message.received .message-time {
+            text-align: left;
+        }
+
+        /* FLEET MANAGEMENT */
+        .fleet-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .fleet-stat-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .fleet-stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .fleet-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .fleet-stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* CONTENT SECTIONS */
+        .content-section {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        .content-section.active {
+            display: flex;
+        }
+
+        .section-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        #kyc-section .section-content {
+            padding: 0;
+            max-width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* BOUTONS */
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--accent-blue), #0097e6);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 168, 255, 0.4);
+        }
+
+        .btn-danger-custom {
+            background: linear-gradient(135deg, var(--accent-red), #ff0000);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-danger-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 56, 56, 0.4);
+        }
+
+        /* CARTES */
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .card-custom:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 5px 20px rgba(0, 168, 255, 0.1);
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0097e6;
+        }
+
+        /* STATUS */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online {
+            background: #00ff9d;
+            box-shadow: 0 0 10px #00ff9d;
+        }
+
+        .status-dot.offline {
+            background: #ff3838;
+            box-shadow: 0 0 10px #ff3838;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 211, 42, 0.15);
+            color: var(--accent-yellow);
+            border: 1px solid rgba(255, 211, 42, 0.3);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .control-panel {
+                width: 300px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+            }
+
+            .control-panel {
+                position: relative;
+                width: 100%;
+                top: 0;
+                right: 0;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- SIDEBAR RÉTRACTABLE -->
+        <div class="sidebar" id="sidebar">
+            <div class="toggle-btn" onclick="toggleSidebar()">
+                <i class="fas fa-chevron-left"></i>
+            </div>
+
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div>
+                    <h3 class="fw-bold mb-0" style="color: var(--accent-blue);">SIRA GO</h3>
+                    <p class="text-secondary small mb-0">Centre de Sécurité v2.0</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link active" onclick="showSection('surveillance')">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span>Surveillance Live</span>
+                        <span class="nav-badge warning" id="live-badge">LIVE</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('kyc')">
+                        <i class="fas fa-user-check"></i>
+                        <span>Validation Chauffeurs</span>
+                        <span class="nav-badge danger" id="kyc-badge">3</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('trips')">
+                        <i class="fas fa-route"></i>
+                        <span>Gestion Courses</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('communication')">
+                        <i class="fas fa-comments"></i>
+                        <span>Communication</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('fleet')">
+                        <i class="fas fa-car"></i>
+                        <span>Gestion Flotte</span>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <div class="nav-link" onclick="showSection('records')">
+                        <i class="fas fa-history"></i>
+                        <span>Enregistrements</span>
+                        <span class="nav-badge bg-primary" id="records-badge">0</span>
+                    </div>
+                </div>
+            </nav>
+
+
+            <div class="p-3 border-top border-secondary">
+                <div class="card-custom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-secondary">STATUT SYSTÈME</small>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <div class="status-dot online"></div>
+                                <span class="text-success fw-bold">SYSTÈME ACTIF</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-danger-custom w-100 btn-sm" onclick="simulateEmergency()">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span>Simuler Urgence</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENU PRINCIPAL -->
+        <div class="main-content">
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="d-flex align-items-center gap-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="status-dot online"></div>
+                        <span class="text-success">SERVEUR CONNECTÉ</span>
+                    </div>
+                    <div class="text-secondary">
+                        <i class="fas fa-clock me-2"></i>
+                        <span id="current-time">00:00:00</span>
+                    </div>
+                    <div class="text-secondary">
+                        <i class="fas fa-car me-2"></i>
+                        <span id="active-vehicles-count">0 véhicules actifs</span>
+                    </div>
+                    <div class="text-secondary">
+                        <i class="fas fa-route me-2"></i>
+                        <span id="active-trips-count">0 courses en cours</span>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <div class="alert alert-warning py-1 px-3 mb-0 d-flex align-items-center gap-2" id="deviation-alert"
+                        style="display: none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="alert-message"></span>
+                    </div>
+                    <button class="btn btn-primary-custom btn-sm" onclick="startSurveillance()" id="start-surveillance">
+                        <i class="fas fa-play me-2"></i>
+                        Démarrer Surveillance
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION SURVEILLANCE (CARTE PRINCIPALE) -->
+            <section id="surveillance-section" class="content-section active">
+                <div id="map-container">
+                    <!-- Conteneur d'Alertes Dynamiques (Salle de Crise) -->
+                    <div id="alertes-container" class="alertes-stack">
+                        <!-- Les alertes SOS et Faux Code s'empileront ici -->
+                    </div>
+
+                    <div class="flux-legend">
+                        <div class="flux-item">
+                            <i class="fas fa-wifi wifi-flux"></i>
+                            <span>FLUX INTERNET</span>
+                        </div>
+                        <div class="flux-item">
+                            <i class="fas fa-broadcast-tower sms-flux"></i>
+                            <span>FLUX SMS (LORS)</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div id="map"></div>
+
+                <!-- Outils Exclusifs Admin -->
+                <div class="tools-toggle-btn" id="tools-toggle" onclick="basculerOutilsAdmin()">
+                    <i class="fas fa-plus"></i>
+                </div>
+
+                <div class="admin-exclusive-controls hidden" id="admin-tools">
+                    <button class="btn btn-primary-custom rounded-circle p-3" id="admin-mic-btn"
+                        onclick="basculerEcoutePassiveCible('chauffeur')" title="Écoute Passive (Micro)">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="btn btn-danger-custom rounded-circle p-3" onclick="triggerManualSOS()"
+                        title="Intervention d'Urgence">
+                        <i class="fas fa-shield-virus"></i>
+                    </button>
+                    <div style="height: 60px;"></div> <!-- Espace pour le bouton de bascule -->
+                </div>
+
+
+
+
+                <!-- Tableau de Contrôle Flottant -->
+
+                <div class="control-panel" id="control-panel">
+                    <button class="panel-toggle" onclick="toggleControlPanel()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+
+                    <div class="card-custom">
+                        <h5 class="mb-3">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            Contrôles Sécurité
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary mb-2">
+                                <i class="fas fa-route me-2"></i>
+                                Seuil de déviation
+                            </label>
+                            <div class="input-group">
+                                <input type="range" class="form-range" id="deviation-range" min="100" max="2000"
+                                    step="50" value="800">
+                                <span class="input-group-text" id="deviation-value">800m</span>
+                            </div>
+                            <small class="text-secondary">
+                                Alerte au-delà de <span id="threshold-display">800</span> mètres
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary mb-2">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Vitesse simulation
+                            </label>
+                            <select class="form-select" id="simulation-speed">
+                                <option value="0.5">Très lente</option>
+                                <option value="1">Lente</option>
+                                <option value="2" selected>Normale</option>
+                                <option value="3">Rapide</option>
+                                <option value="5">Très rapide</option>
+                            </select>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <h6 class="mb-2">
+                            <i class="fas fa-car me-2"></i>
+                            Véhicules en course
+                        </h6>
+                        <div id="vehicle-list" style="max-height: 200px; overflow-y: auto;">
+                            <div class="text-center py-4 text-secondary">
+                                <i class="fas fa-car fa-2x mb-3"></i>
+                                <p class="mb-0 small">Aucun véhicule en course</p>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <h6 class="mb-2">
+                            <i class="fas fa-cog me-2"></i>
+                            Actions système
+                        </h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="createRandomTrip()">
+                                <i class="fas fa-plus me-2"></i>
+                                Créer course test
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="resetAllTrips()">
+                                <i class="fas fa-redo me-2"></i>
+                                Réinitialiser courses
+                            </button>
+                        </div>
+
+                        <!-- Panneau de Détails Véhicule Sélectionné -->
+                        <div id="vehicle-details-panel">
+                            <hr class="my-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0 text-info">
+                                    <i class="fas fa-info-circle me-2"></i>Détails Véhicule
+                                </h6>
+                                <button class="btn btn-sm text-secondary p-0" onclick="hideVehicleDetails()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <div id="vehicle-details-content">
+                                <div class="detail-row">
+                                    <span class="text-secondary">Modèle:</span>
+                                    <span id="detail-model" class="fw-bold">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="text-secondary">Plaque:</span>
+                                    <span id="detail-plate" class="fw-bold">-</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="text-secondary">Chauffeur:</span>
+                                    <span id="detail-driver" class="fw-bold">-</span>
+                                </div>
+
+                                <div class="mic-controls-row">
+                                    <button class="btn-mic-dual" id="mic-btn-chauffeur"
+                                        onclick="basculerEcoutePassiveCible('chauffeur')">
+                                        <i class="fas fa-microphone"></i>
+                                        <span>Chauffeur</span>
+                                    </button>
+                                    <button class="btn-mic-dual" id="mic-btn-passager"
+                                        onclick="basculerEcoutePassiveCible('passager')">
+                                        <i class="fas fa-microphone-alt"></i>
+                                        <span>Passager</span>
+                                    </button>
+                                </div>
+
+                                <button class="btn btn-danger-custom btn-sm w-100 mt-3" onclick="triggerManualSOS()">
+                                    <i class="fas fa-shield-virus me-2"></i>INTERVENTION SOS
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+        </section>
+
+        <!-- SECTION VALIDATION KYC COMPLÈTE -->
+        <section id="kyc-section" class="content-section">
+            <div class="kyc-fullscreen-wrapper">
+                <!-- Header Compact -->
+                <div class="kyc-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <div
+                            style="width: 36px; height: 36px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-user-check" style="color: #fff; font-size: 0.9rem;"></i>
+                        </div>
+                        <h5 class="mb-0">Validation Chauffeurs</h5>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="kyc-stat-mini">
+                            <div class="stat-icon"
+                                style="background: rgba(0, 168, 255, 0.2); color: var(--accent-blue);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <span class="text-secondary small">Total:</span>
+                            <span class="fw-bold" id="total-drivers-count">0</span>
+                        </div>
+                        <div class="kyc-stat-mini">
+                            <div class="stat-icon" style="background: rgba(0, 184, 148, 0.2); color: #00b894;">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <span class="text-secondary small">Validés:</span>
+                            <span class="fw-bold" style="color: #55efc4;" id="validated-count">0</span>
+                        </div>
+                        <div class="kyc-stat-mini">
+                            <div class="stat-icon" style="background: rgba(253, 203, 110, 0.2); color: #fdcb6e;">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <span class="text-secondary small">En attente:</span>
+                            <span class="fw-bold" style="color: #fdcb6e;" id="pending-count">0</span>
+                        </div>
+                        <button class="btn btn-primary-custom btn-sm" onclick="refreshKYCList()"
+                            style="border-radius: 10px; padding: 8px 14px;">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Conteneur Principal Split -->
+                <div class="kyc-main-grid">
+                    <!-- Liste Chauffeurs - OCCUPE TOUT L'ESPACE DISPONIBLE -->
+                    <div class="kyc-drivers-list">
+                        <div class="kyc-list-header">
+                            <span><i class="fas fa-folder-open me-2" style="color: #6c5ce7;"></i>Dossiers en
+                                attente</span>
+                            <span class="badge"
+                                style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff;"
+                                id="pending-badge">0</span>
+                        </div>
+                        <!-- Barre de recherche -->
+                        <div
+                            style="padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;">
+                            <div style="position: relative;">
+                                <i class="fas fa-search"
+                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.3); font-size: 0.8rem;"></i>
+                                <input type="text" placeholder="Rechercher un chauffeur..."
+                                    style="width: 100%; padding: 10px 14px 10px 36px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: #fff; font-size: 0.85rem; outline: none; transition: border-color 0.2s;"
+                                    onfocus="this.style.borderColor='rgba(108,92,231,0.4)'"
+                                    onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+                                    oninput="filterKYCDrivers(this.value)">
+                            </div>
+                        </div>
+                        <div class="kyc-list-scroll" id="kyc-list-container">
+                            <!-- Rempli dynamiquement -->
+                        </div>
+                    </div>
+
+                    <!-- Zone de Prévisualisation -->
+                    <div class="kyc-preview-zone">
+                        <!-- État vide -->
+                        <div id="kyc-empty-state" class="kyc-empty">
+                            <i class="fas fa-shield-alt"
+                                style="font-size: 5rem; margin-bottom: 24px; opacity: 0.2; color: #6c5ce7;"></i>
+                            <h5
+                                style="font-size: 1.3rem; font-weight: 700; color: rgba(255,255,255,0.7); margin-bottom: 8px;">
+                                Validation KYC</h5>
+                            <p class="text-secondary" style="font-size: 0.9rem; margin-bottom: 30px;">Sélectionnez un
+                                chauffeur dans la liste pour examiner ses documents</p>
+                            <div style="display: flex; gap: 20px; position: relative; z-index: 1;">
+                                <div
+                                    style="text-align: center; padding: 20px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; min-width: 140px;">
+                                    <i class="fas fa-id-card"
+                                        style="font-size: 1.6rem; color: #a29bfe; margin-bottom: 10px; display: block;"></i>
+                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Étape 1</div>
+                                    <div
+                                        style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-top: 4px;">
+                                        Vérifier pièces</div>
+                                </div>
+                                <div
+                                    style="text-align: center; padding: 20px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; min-width: 140px;">
+                                    <i class="fas fa-check-double"
+                                        style="font-size: 1.6rem; color: #00b894; margin-bottom: 10px; display: block;"></i>
+                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Étape 2</div>
+                                    <div
+                                        style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-top: 4px;">
+                                        Valider / Rejeter</div>
+                                </div>
+                                <div
+                                    style="text-align: center; padding: 20px 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; min-width: 140px;">
+                                    <i class="fas fa-user-check"
+                                        style="font-size: 1.6rem; color: #fdcb6e; margin-bottom: 10px; display: block;"></i>
+                                    <div style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">Étape 3</div>
+                                    <div
+                                        style="font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.75); margin-top: 4px;">
+                                        Approuver final</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contenu actif -->
+                        <div id="kyc-active-content" class="kyc-active-view" style="display: none;">
+                            <!-- Zone Image -->
+                            <div class="kyc-doc-viewer">
+                                <img id="current-doc-img" src="" class="kyc-doc-image" alt="Document">
+                                <div id="doc-zoom-hint" class="kyc-zoom-hint">
+                                    <i class="fas fa-search-plus"></i> Cliquez pour zoomer
+                                </div>
+                            </div>
+
+                            <!-- Miniatures Documents -->
+                            <div class="kyc-doc-tabs" id="doc-thumbs">
+                                <!-- Thumbs dynamiques -->
+                            </div>
+
+                            <!-- Panneau de Contrôle -->
+                            <div class="kyc-control-panel">
+                                <div class="kyc-doc-info">
+                                    <h6 id="selected-driver-name" class="mb-0">-</h6>
+                                    <p id="selected-doc-name" class="text-info small mb-0">Sélectionnez un document</p>
+                                </div>
+                                <div class="kyc-actions">
+                                    <button class="btn btn-outline-danger btn-sm" onclick="rejectCurrentDocument()">
+                                        <i class="fas fa-times"></i> Rejeter
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="verifyCurrentDocument()">
+                                        <i class="fas fa-check"></i> Valider
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Motifs de Rejet -->
+                            <div class="kyc-rejection-panel" id="rejection-reasons-panel" style="display: none;">
+                                <button class="kyc-reason-btn" onclick="applyRejection('Illisible')">
+                                    <i class="fas fa-eye-slash"></i> Document illisible / Flou
+                                </button>
+                                <button class="kyc-reason-btn" onclick="applyRejection('Expiré')">
+                                    <i class="fas fa-calendar-times"></i> Document expiré
+                                </button>
+                                <button class="kyc-reason-btn" onclick="applyRejection('Incorrect')">
+                                    <i class="fas fa-file-excel"></i> Type de document incorrect
+                                </button>
+                                <button class="kyc-reason-btn" onclick="applyRejection('Fraude')">
+                                    <i class="fas fa-exclamation-triangle"></i> Suspicion de faux
+                                </button>
+                            </div>
+
+                            <!-- Boutons Finaux -->
+                            <div class="kyc-final-actions">
+                                <button class="btn btn-secondary" onclick="closeKYCDetail()">
+                                    <i class="fas fa-arrow-left me-2"></i>Retour
+                                </button>
+                                <button class="btn btn-success" id="final-approve-btn" onclick="finalApproveKYC()"
+                                    disabled>
+                                    <i class="fas fa-check-circle me-2"></i>Approuver le Chauffeur
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION GESTION COURSES -->
+        <section id="trips-section" class="content-section">
+            <div class="section-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-route me-3" style="color: var(--accent-blue);"></i>
+                            Gestion des Courses
+                        </h2>
+                        <p class="text-secondary mb-0">Suivez et gérez les courses en temps réel</p>
+                    </div>
+                    <button class="btn btn-primary-custom" onclick="createRandomTrip()">
+                        <i class="fas fa-plus me-2"></i>
+                        Nouvelle course test
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card-custom">
+                            <h5 class="mb-3">Courses en cours</h5>
+
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Course ID</th>
+                                            <th>Chauffeur</th>
+                                            <th>Trajet</th>
+                                            <th>Statut</th>
+                                            <th>Progression</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="active-trips-table">
+                                        <!-- Rempli dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">Historique des courses</h5>
+                            <div id="trip-history" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-center py-4 text-secondary">
+                                    <i class="fas fa-history fa-2x mb-3"></i>
+                                    <p class="mb-0 small">Aucune course terminée</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card-custom">
+                            <h5 class="mb-3">Statistiques courses</h5>
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Courses aujourd'hui</span>
+                                    <span class="fw-bold" id="today-trips">0</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-info" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">En cours</span>
+                                    <span class="fw-bold text-warning" id="ongoing-trips">0</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" style="width: 0%"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-secondary">Terminées</span>
+                                    <span class="fw-bold text-success" id="completed-trips">0</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div class="progress-bar bg-success" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">Créer une course</h5>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary">Chauffeur</label>
+                                <select class="form-select" id="trip-driver-select">
+                                    <option value="">Sélectionner un chauffeur</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary">Trajet</label>
+                                <select class="form-select" id="trip-route-select">
+                                    <option value="">Sélectionner un trajet</option>
+                                </select>
+                            </div>
+
+                            <button class="btn btn-primary-custom w-100" onclick="createTrip()">
+                                <i class="fas fa-play me-2"></i>
+                                Démarrer la course
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION COMMUNICATION COMPLÈTE -->
+        <section id="communication-section" class="content-section">
+            <div class="section-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-comments me-3" style="color: var(--accent-blue);"></i>
+                            Centre de Communication
+                        </h2>
+                        <p class="text-secondary mb-0">Communiquez avec les chauffeurs en temps réel</p>
+                    </div>
+                    <button class="btn btn-primary-custom" onclick="startAudioMonitoring()">
+                        <i class="fas fa-microphone me-2"></i>
+                        Démarrer écoute
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-users me-2"></i>
+                                Chauffeurs connectés
+                            </h5>
+                            <div id="connected-drivers" style="max-height: 400px; overflow-y: auto;">
+                                <!-- Liste des chauffeurs connectés -->
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-bullhorn me-2"></i>
+                                Messages rapides
+                            </h5>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary" onclick="sendQuickMessage('status')">
+                                    <i class="fas fa-question-circle me-2"></i>
+                                    Demander statut
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="sendQuickMessage('location')">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    Demander position
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="sendQuickMessage('emergency')">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Vérifier sécurité
+                                </button>
+                                <button class="btn btn-outline-success" onclick="sendQuickMessage('arrival')">
+                                    <i class="fas fa-flag-checkered me-2"></i>
+                                    Confirmer arrivée
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="card-custom">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-comment-dots me-2"></i>
+                                    Messagerie
+                                </h5>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-primary-custom" onclick="startRecording()">
+                                        <i class="fas fa-record-vinyl me-2"></i>
+                                        Enregistrer
+                                    </button>
+                                    <button class="btn btn-sm btn-danger-custom" onclick="sendEmergencyAlert()">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Alerte SOS
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Conversation -->
+                            <div class="message-container" id="conversation-container">
+                                <div class="text-center py-5 text-secondary">
+                                    <i class="fas fa-comments fa-3x mb-3"></i>
+                                    <p class="mb-0">Aucun message échangé</p>
+                                    <p class="small mt-2">Sélectionnez un chauffeur pour commencer</p>
+                                </div>
+                            </div>
+
+                            <!-- Champ de message -->
+                            <div class="input-group mt-3">
+                                <input type="text" class="form-control" id="message-input"
+                                    placeholder="Écrivez votre message..." onkeypress="handleMessageKeypress(event)">
+                                <button class="btn btn-primary-custom" onclick="sendMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+
+                            <!-- Destinataire -->
+                            <div class="mt-3">
+                                <label class="form-label text-secondary">Destinataire</label>
+                                <select class="form-select" id="recipient-select">
+                                    <option value="">Sélectionner un chauffeur</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-history me-2"></i>
+                                Historique des communications
+                            </h5>
+                            <div id="communication-history" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-center py-3 text-secondary">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Aucune communication récente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION GESTION FLOTTE COMPLÈTE -->
+        <section id="fleet-section" class="content-section">
+            <div class="section-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-car me-3" style="color: var(--accent-blue);"></i>
+                            Gestion de Flotte
+                        </h2>
+                        <p class="text-secondary mb-0">Gérez votre flotte de véhicules et chauffeurs</p>
+                    </div>
+                    <button class="btn btn-primary-custom" onclick="addNewVehicle()">
+                        <i class="fas fa-plus me-2"></i>
+                        Ajouter véhicule
+                    </button>
+                </div>
+
+                <!-- Statistiques flotte -->
+                <div class="fleet-stats">
+                    <div class="fleet-stat-card">
+                        <div class="fleet-stat-icon" style="color: var(--accent-blue);">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <div class="fleet-stat-value" id="total-vehicles-count">0</div>
+                        <div class="fleet-stat-label">Véhicules Total</div>
+                    </div>
+
+                    <div class="fleet-stat-card">
+                        <div class="fleet-stat-icon" style="color: var(--accent-green);">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="fleet-stat-value" id="active-vehicles-count">0</div>
+                        <div class="fleet-stat-label">Véhicules Actifs</div>
+                    </div>
+
+                    <div class="fleet-stat-card">
+                        <div class="fleet-stat-icon" style="color: var(--accent-yellow);">
+                            <i class="fas fa-wrench"></i>
+                        </div>
+                        <div class="fleet-stat-value" id="maintenance-vehicles">0</div>
+                        <div class="fleet-stat-label">En Maintenance</div>
+                    </div>
+
+                    <div class="fleet-stat-card">
+                        <div class="fleet-stat-icon" style="color: var(--accent-red);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="fleet-stat-value" id="problem-vehicles">0</div>
+                        <div class="fleet-stat-label">Problèmes Signalés</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-list me-2"></i>
+                                Liste des véhicules
+                            </h5>
+
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Véhicule</th>
+                                            <th>Plaque</th>
+                                            <th>Chauffeur</th>
+                                            <th>Statut</th>
+                                            <th>Dernière activité</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fleet-table">
+                                        <!-- Rempli dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-clipboard-list me-2"></i>
+                                Entretien & Maintenance
+                            </h5>
+                            <div id="maintenance-list" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-center py-3 text-secondary">
+                                    <i class="fas fa-tools fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Aucune maintenance programmée</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Performances flotte
+                            </h5>
+                            <div class="mb-3">
+                                <label class="text-secondary small">Utilisation moyenne</label>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar bg-info" style="width: 65%"></div>
+                                </div>
+                                <div class="text-end small">65%</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="text-secondary small">Fiabilité</label>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar bg-success" style="width: 92%"></div>
+                                </div>
+                                <div class="text-end small">92%</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="text-secondary small">Satisfaction clients</label>
+                                <div class="progress" style="height: 10px;">
+                                    <div class="progress-bar bg-warning" style="width: 88%"></div>
+                                </div>
+                                <div class="text-end small">4.4/5</div>
+                            </div>
+                        </div>
+
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-bell me-2"></i>
+                                Alertes récentes
+                            </h5>
+                            <div id="fleet-alerts" style="max-height: 200px; overflow-y: auto;">
+                                <div class="text-center py-3 text-secondary">
+                                    <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Aucune alerte récente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SECTION ENREGISTREMENTS AUDIO -->
+        <section id="records-section" class="content-section">
+            <div class="section-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="mb-1">
+                            <i class="fas fa-history me-3" style="color: var(--accent-blue);"></i>
+                            Enregistrements Audio
+                        </h2>
+                        <p class="text-secondary mb-0">Historique des écoutes passives et SOS</p>
+                    </div>
+                </div>
+
+                <div class="card-custom">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date & Heure</th>
+                                    <th>Chauffeur / Véhicule</th>
+                                    <th>Durée</th>
+                                    <th>Type</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audio-records-table">
+                                <tr>
+                                    <td colspan="5" class="text-center py-5 text-secondary">
+                                        <i class="fas fa-microphone-alt-slash fa-2x mb-3"></i>
+                                        <p>Aucun enregistrement sauvegardé</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- SECTION DASHBOARD -->
+        <section id="dashboard-section" class="content-section">
+            <div class="section-content">
+                <h2 class="mb-4">
+                    <i class="fas fa-tachometer-alt me-3" style="color: var(--accent-blue);"></i>
+                    Tableau de Bord
+                </h2>
+
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card-custom text-center">
+                            <div class="fleet-stat-icon" style="color: var(--accent-blue);">
+                                <i class="fas fa-car"></i>
+                            </div>
+                            <div class="fleet-stat-value" id="dashboard-total-vehicles">0</div>
+                            <div class="fleet-stat-label">Véhicules Total</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card-custom text-center">
+                            <div class="fleet-stat-icon" style="color: var(--accent-green);">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <div class="fleet-stat-value" id="dashboard-active-drivers">0</div>
+                            <div class="fleet-stat-label">Chauffeurs Actifs</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card-custom text-center">
+                            <div class="fleet-stat-icon" style="color: var(--accent-yellow);">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="fleet-stat-value" id="dashboard-today-alerts">0</div>
+                            <div class="fleet-stat-label">Alertes Aujourd'hui</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="card-custom text-center">
+                            <div class="fleet-stat-icon" style="color: var(--accent-blue);">
+                                <i class="fas fa-route"></i>
+                            </div>
+                            <div class="fleet-stat-value" id="dashboard-total-trips">0</div>
+                            <div class="fleet-stat-label">Courses Total</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Activité récente
+                            </h5>
+                            <div id="recent-activity" style="min-height: 300px;">
+                                <div class="text-center py-5 text-secondary">
+                                    <i class="fas fa-chart-line fa-3x mb-3"></i>
+                                    <p class="mb-0">Chargement des données...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card-custom">
+                            <h5 class="mb-3">
+                                <i class="fas fa-clock me-2"></i>
+                                Dernières actions
+                            </h5>
+                            <div id="recent-actions" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-center py-3 text-secondary">
+                                    <i class="fas fa-history fa-2x mb-2"></i>
+                                    <p class="mb-0 small">Aucune action récente</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-custom mt-3">
+                            <h5 class="mb-3">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Statut sécurité
+                            </h5>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span>Système de surveillance</span>
+                                <span class="badge bg-success">ACTIF</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span>Communication</span>
+                                <span class="badge bg-success">CONNECTÉ</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span>Base de données</span>
+                                <span class="badge bg-success">SYNCHRONISÉE</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>Serveur GPS</span>
+                                <span class="badge bg-success">OPÉRATIONNEL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    </div>
+
+    <!-- MODAL DÉTAILS DOCUMENTS -->
+    <div class="modal-custom" id="document-modal">
+        <div class="modal-content-custom" style="max-width: 800px;">
+            <div class="p-4 border-bottom border-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-contract me-3" style="color: var(--accent-blue);"></i>
+                        Vérification des documents
+                    </h4>
+                    <button class="btn btn-sm btn-secondary" onclick="closeDocumentModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <div id="document-modal-content">
+                    <!-- Contenu dynamique -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NOUVEAU VÉHICULE -->
+    <div class="modal-custom" id="vehicle-modal">
+        <div class="modal-content-custom" style="max-width: 600px;">
+            <div class="p-4 border-bottom border-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-3" style="color: var(--accent-blue);"></i>
+                        Ajouter un véhicule
+                    </h4>
+                    <button class="btn btn-sm btn-secondary" onclick="closeVehicleModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4">
+                <div id="vehicle-modal-content">
+                    <form id="vehicle-form">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Marque/Modèle</label>
+                            <input type="text" class="form-control" id="vehicle-model" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Plaque d'immatriculation</label>
+                            <input type="text" class="form-control" id="vehicle-plate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Année</label>
+                            <input type="number" class="form-control" id="vehicle-year" min="2000" max="2024"
+                                value="2022">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Type de véhicule</label>
+                            <select class="form-select" id="vehicle-type">
+                                <option value="sedan">Berline</option>
+                                <option value="suv">SUV</option>
+                                <option value="van">Van</option>
+                                <option value="luxury">Luxe</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Kilométrage</label>
+                            <input type="number" class="form-control" id="vehicle-mileage" value="0">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary">Statut</label>
+                            <select class="form-select" id="vehicle-status">
+                                <option value="active">Actif</option>
+                                <option value="maintenance">Maintenance</option>
+                                <option value="inactive">Inactif</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary-custom w-100">
+                            <i class="fas fa-save me-2"></i>
+                            Enregistrer le véhicule
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script> <!-- Logique de la Salle de Crise -->
+
+    <script>
+
+        // =============================================
+        // CONFIGURATION GLOBALE
+        // =============================================
+
+        const CONFIG = {
+            MAP_CENTER: [5.359951, -4.008256],
+            MAP_ZOOM: 12,
+            DEVIATION_THRESHOLD: 800,
+            SIMULATION_SPEED: 2
+        };
+
+        // Données chauffeurs avec documents
+        const DRIVERS = [
+            {
+                id: 1,
+                name: "Jean Konan",
+                phone: "+225 07 12 34 56 78",
+                vehicle: "Toyota Corolla",
+                plate: "AB-123-CD",
+                status: "pending",
+                kycStatus: "pending",
+                documents: [
+                    {
+                        id: 1,
+                        type: "permis",
+                        name: "Permis de conduire",
+                        file: "permis_jean.jpg",
+                        verified: false,
+                        uploadDate: "2024-01-15",
+                        comment: ""
+                    },
+                    {
+                        id: 2,
+                        type: "cni",
+                        name: "Carte nationale d'identité",
+                        file: "cni_jean.jpg",
+                        verified: false,
+                        uploadDate: "2024-01-15",
+                        comment: ""
+                    },
+                    {
+                        id: 3,
+                        type: "assurance",
+                        name: "Assurance véhicule",
+                        file: "assurance_jean.pdf",
+                        verified: false,
+                        uploadDate: "2024-01-16",
+                        comment: ""
+                    }
+                ],
+                registrationDate: "2024-01-15",
+                lastVerification: null
+            },
+            {
+                id: 2,
+                name: "Marie Traoré",
+                phone: "+225 05 98 76 54 32",
+                vehicle: "Hyundai Accent",
+                plate: "EF-456-GH",
+                status: "pending",
+                kycStatus: "pending",
+                documents: [
+                    {
+                        id: 1,
+                        type: "permis",
+                        name: "Permis de conduire",
+                        file: "permis_marie.jpg",
+                        verified: false,
+                        uploadDate: "2024-01-20",
+                        comment: "Photo floue"
+                    }
+                ],
+                registrationDate: "2024-01-20",
+                lastVerification: null
+            },
+            {
+                id: 3,
+                name: "Koffi N'Guessan",
+                phone: "+225 01 23 45 67 89",
+                vehicle: "Peugeot 208",
+                plate: "IJ-789-KL",
+                status: "approved",
+                kycStatus: "verified",
+                documents: [
+                    {
+                        id: 1,
+                        type: "permis",
+                        name: "Permis de conduire",
+                        file: "permis_koffi.jpg",
+                        verified: true,
+                        uploadDate: "2024-01-10",
+                        comment: "Document valide"
+                    },
+                    {
+                        id: 2,
+                        type: "cni",
+                        name: "Carte d'identité",
+                        file: "cni_koffi.jpg",
+                        verified: true,
+                        uploadDate: "2024-01-10",
+                        comment: "Document valide"
+                    },
+                    {
+                        id: 3,
+                        type: "assurance",
+                        name: "Assurance",
+                        file: "assurance_koffi.pdf",
+                        verified: true,
+                        uploadDate: "2024-01-11",
+                        comment: "Valide jusqu'au 2025"
+                    }
+                ],
+                registrationDate: "2024-01-10",
+                lastVerification: "2024-01-12"
+            }
+        ];
+
+        // Données flotte
+        const FLEET_DATA = {
+            vehicles: [
+                {
+                    id: 1,
+                    model: "Toyota Corolla",
+                    plate: "AB-123-CD",
+                    year: 2020,
+                    type: "sedan",
+                    mileage: 45000,
+                    status: "active",
+                    driverId: 1,
+                    lastMaintenance: "2024-01-10",
+                    nextMaintenance: "2024-04-10",
+                    issues: []
+                },
+                {
+                    id: 2,
+                    model: "Hyundai Accent",
+                    plate: "EF-456-GH",
+                    year: 2021,
+                    type: "sedan",
+                    mileage: 32000,
+                    status: "active",
+                    driverId: 2,
+                    lastMaintenance: "2024-01-05",
+                    nextMaintenance: "2024-04-05",
+                    issues: []
+                },
+                {
+                    id: 3,
+                    model: "Peugeot 208",
+                    plate: "IJ-789-KL",
+                    year: 2022,
+                    type: "sedan",
+                    mileage: 15000,
+                    status: "active",
+                    driverId: 3,
+                    lastMaintenance: "2024-01-15",
+                    nextMaintenance: "2024-04-15",
+                    issues: []
+                },
+                {
+                    id: 4,
+                    model: "Dacia Logan",
+                    plate: "MN-012-OP",
+                    year: 2019,
+                    type: "sedan",
+                    mileage: 78000,
+                    status: "maintenance",
+                    driverId: null,
+                    lastMaintenance: "2024-01-02",
+                    nextMaintenance: "2024-02-02",
+                    issues: ["Freins à changer", "Vidange nécessaire"]
+                }
+            ],
+            alerts: [],
+            maintenance: []
+        };
+
+        // Données communication
+        const COMMUNICATION_DATA = {
+            conversations: [],
+            quickMessages: {
+                status: "📊 Demande de statut: Tout va bien ? Veuillez confirmer votre situation.",
+                location: "📍 Demande de position: Confirmez votre localisation actuelle.",
+                emergency: "🚨 Vérification sécurité: Répondez immédiatement si tout va bien !",
+                arrival: "✅ Confirmation arrivée: Avez-vous atteint la destination ?"
+            }
+        };
+
+        // Variables globales
+        let map = null;
+        let vehicles = [];
+        let trips = [];
+        let activeTrips = [];
+        let simulationInterval = null;
+        let isSimulationRunning = false;
+        let selectedDriver = null;
+        let currentConversation = [];
+        let selectedVehicle = null;
+
+        // ÉTAT GLOBAL DE LA SALLE DE CRISE
+        const SALLE_DE_CRISE = {
+            typeFlux: 'WIFI', // 'WIFI' ou 'SMS'
+            estSecousseActive: false,
+            fauxCodePresse: false
+        };
+
+
+        // =============================================
+        // INITIALISATION
+        // =============================================
+
+        document.addEventListener('DOMContentLoaded', function () {
+            initDateTime();
+            initMainMap();
+            initEventListeners();
+            initKYCData();
+            initTripData();
+            initFleetData();
+            initCommunicationData();
+            initDashboardData();
+
+            setInterval(updateDateTime, 1000);
+        });
+
+        function initDateTime() {
+            updateDateTime();
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            document.getElementById('current-time').textContent = timeStr;
+        }
+
+        function initMainMap() {
+            map = L.map('map', {
+                center: CONFIG.MAP_CENTER,
+                zoom: CONFIG.MAP_ZOOM,
+                minZoom: 10,
+                maxZoom: 18,
+                zoomControl: true
+            });
+
+            // Fond de carte sombre
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Ajuster la vue sur Abidjan
+            map.fitBounds([
+                [5.25, -4.1],
+                [5.45, -3.85]
+            ]);
+        }
+
+        function initEventListeners() {
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+
+            // Contrôles carte
+            document.getElementById('deviation-range').addEventListener('input', function () {
+                CONFIG.DEVIATION_THRESHOLD = parseInt(this.value);
+                document.getElementById('deviation-value').textContent = this.value + 'm';
+                document.getElementById('threshold-display').textContent = this.value;
+            });
+
+            document.getElementById('simulation-speed').addEventListener('change', function () {
+                CONFIG.SIMULATION_SPEED = parseFloat(this.value);
+            });
+
+            // Formulaire véhicule
+            document.getElementById('vehicle-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveNewVehicle();
+            });
+        }
+
+        // =============================================
+        // NAVIGATION ET UI
+        // =============================================
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+
+            const targetSection = document.getElementById(sectionId + '-section');
+            if (targetSection) {
+                targetSection.classList.add('active');
+
+                // Masquer la top-bar pour la section KYC
+                const appContainer = document.querySelector('.app-container');
+                const mainContent = document.querySelector('.main-content');
+
+                if (sectionId === 'kyc') {
+                    appContainer.classList.add('kyc-fullscreen');
+                    if (mainContent) mainContent.classList.add('kyc-fullscreen');
+                } else {
+                    appContainer.classList.remove('kyc-fullscreen');
+                    if (mainContent) mainContent.classList.remove('kyc-fullscreen');
+                }
+
+                if (sectionId === 'surveillance' && map) {
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 100);
+                }
+            }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+
+            const toggleIcon = sidebar.querySelector('.toggle-btn i');
+            if (sidebar.classList.contains('collapsed')) {
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                toggleIcon.className = 'fas fa-chevron-left';
+            }
+        }
+
+        function toggleControlPanel() {
+            const panel = document.getElementById('control-panel');
+            const toggleIcon = panel.querySelector('.panel-toggle i');
+
+            panel.classList.toggle('collapsed');
+
+            if (panel.classList.contains('collapsed')) {
+                toggleIcon.className = 'fas fa-chevron-right';
+            } else {
+                toggleIcon.className = 'fas fa-chevron-left';
+            }
+        }
+
+        // =============================================
+        // VALIDATION KYC COMPLÈTE
+        // =============================================
+
+        function initKYCData() {
+            updateKYCList();
+            updateKYCStats();
+        }
+
+        function updateKYCList() {
+            const listContainer = document.getElementById('kyc-list-container');
+            if (!listContainer) return;
+
+            const pendingDrivers = DRIVERS.filter(d => d.status === "pending");
+
+            // Mise à jour du badge
+            const badge = document.getElementById('pending-badge');
+            if (badge) badge.textContent = pendingDrivers.length;
+
+            if (pendingDrivers.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center text-secondary py-5">
+                        <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+                        <p>Dossiers à jour</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = pendingDrivers.map(driver => {
+                const docCount = driver.documents.length;
+                const verifiedCount = driver.documents.filter(d => d.verified).length;
+                const progress = (verifiedCount / docCount) * 100;
+                const isActive = selectedDriver && selectedDriver.id === driver.id;
+                const initials = driver.name.split(' ').map(n => n[0]).join('');
+
+                return `
+                    <div class="kyc-item ${isActive ? 'active' : ''}" onclick="selectDriverForKYC(${driver.id})">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="driver-avatar pending">${initials}</div>
+                            <div class="driver-info">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="driver-name">${driver.name}</div>
+                                    <span class="kyc-status-badge to-verify">À vérifier</span>
+                                </div>
+                                <div class="driver-vehicle"><i class="fas fa-car"></i> ${driver.vehicle}</div>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="driver-phone"><i class="fas fa-phone"></i> ${driver.phone}</div>
+                                    <div class="doc-counter"><i class="fas fa-file-alt"></i> ${verifiedCount}/${docCount} docs</div>
+                                </div>
+                                <div class="kyc-progress-track">
+                                    <div class="kyc-progress-fill" style="width: ${progress}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterKYCDrivers(searchTerm) {
+            const items = document.querySelectorAll('.kyc-item');
+            const term = searchTerm.toLowerCase().trim();
+            items.forEach(item => {
+                const name = item.querySelector('.driver-name');
+                if (!name) return;
+                const match = name.textContent.toLowerCase().includes(term);
+                item.style.display = match ? '' : 'none';
+            });
+        }
+
+        let currentDocIndex = 0;
+
+        function selectDriverForKYC(driverId) {
+            const driver = DRIVERS.find(d => d.id === driverId);
+            if (!driver) return;
+
+            selectedDriver = driver;
+            currentDocIndex = 0;
+
+            // Mettre à jour la liste pour l'état actif
+            updateKYCList();
+
+            // Afficher le panneau de détails
+            document.getElementById('kyc-empty-state').style.display = 'none';
+            document.getElementById('kyc-active-content').style.display = 'flex';
+
+            document.getElementById('selected-driver-name').textContent = driver.name;
+
+            updateDocumentPreview();
+            updateThumbnails();
+        }
+
+        function updateThumbnails() {
+            const thumbContainer = document.getElementById('doc-thumbs');
+            if (!selectedDriver) return;
+
+            thumbContainer.innerHTML = selectedDriver.documents.map((doc, idx) => `
+                <div class="thumb-card ${idx === currentDocIndex ? 'active' : ''}" onclick="switchToDocument(${idx})">
+                    <i class="${getDocumentIcon(doc.type)}"></i>
+                    <div class="small">${doc.name}</div>
+                    <div class="doc-status-badge ${doc.verified ? 'bg-success' : (doc.comment ? 'bg-danger' : 'bg-secondary')}">
+                        ${doc.verified ? 'OK' : (doc.comment ? 'REJET' : 'ATTENTE')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function switchToDocument(index) {
+            currentDocIndex = index;
+            updateDocumentPreview();
+            updateThumbnails();
+
+            // Cacher le panneau de motifs de rejet si on change de doc
+            document.getElementById('rejection-reasons-panel').style.display = 'none';
+        }
+
+        function updateDocumentPreview() {
+            if (!selectedDriver || !selectedDriver.documents[currentDocIndex]) return;
+
+            const doc = selectedDriver.documents[currentDocIndex];
+            const imgElement = document.getElementById('current-doc-img');
+            const docNameElement = document.getElementById('selected-doc-name');
+
+            // Simulation de chargement d'image
+            imgElement.style.opacity = '0';
+            setTimeout(() => {
+                imgElement.src = `https://placehold.co/800x600/1a1a2e/6c5ce7?text=${doc.name.replace(/ /g, '+')}`;
+                imgElement.style.opacity = '1';
+            }, 200);
+
+            docNameElement.textContent = `${doc.name} ${doc.verified ? '✅' : ''}`;
+
+            // Vérifier si le chauffeur peut être approuvé final
+            checkFinalApproveStatus();
+        }
+
+        function verifyCurrentDocument() {
+            if (!selectedDriver) return;
+
+            const doc = selectedDriver.documents[currentDocIndex];
+            doc.verified = true;
+            doc.comment = ""; // Effacer motif de rejet
+
+            showNotification('Document Vérifié', `${doc.name} a été validé`, 'success');
+
+            updateDocumentPreview();
+            updateThumbnails();
+            updateKYCList();
+
+            checkFinalApproveStatus();
+        }
+
+        function rejectCurrentDocument() {
+            document.getElementById('rejection-reasons-panel').style.display = 'grid';
+        }
+
+        function applyRejection(reason) {
+            if (!selectedDriver) return;
+
+            const doc = selectedDriver.documents[currentDocIndex];
+            doc.verified = false;
+            doc.comment = reason;
+
+            showNotification('Document Rejeté', `${doc.name} : ${reason}`, 'warning');
+
+            document.getElementById('rejection-reasons-panel').style.display = 'none';
+            updateDocumentPreview();
+            updateThumbnails();
+            updateKYCList();
+
+            checkFinalApproveStatus();
+        }
+
+        function checkFinalApproveStatus() {
+            if (!selectedDriver) return;
+
+            const allVerified = selectedDriver.documents.every(d => d.verified);
+            const btn = document.getElementById('final-approve-btn');
+            btn.disabled = !allVerified;
+
+            if (allVerified) {
+                btn.classList.remove('btn-primary-custom');
+                btn.classList.add('btn-success');
+            } else {
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary-custom');
+            }
+        }
+
+        function finalApproveKYC() {
+            if (!selectedDriver) return;
+
+            approveDriverKYC(selectedDriver.id);
+            closeKYCDetail();
+        }
+
+        function closeKYCDetail() {
+            document.getElementById('kyc-empty-state').style.display = 'flex';
+            document.getElementById('kyc-active-content').style.display = 'none';
+            selectedDriver = null;
+            updateKYCList();
+        }
+
+        function approveDriverKYC(driverId) {
+            const driver = DRIVERS.find(d => d.id === driverId);
+            if (driver) {
+                driver.status = 'approved';
+                driver.kycStatus = 'verified';
+                driver.lastVerification = new Date().toLocaleDateString('fr-FR');
+
+                updateDriverSelectors();
+                showNotification('✅ Chauffeur validé', `${driver.name} a été activé avec succès`, 'success');
+
+                updateKYCList();
+                updateKYCStats();
+                updateRecentValidations();
+                updateFleetData();
+            }
+        }
+
+        function updateRecentValidations() {
+            const container = document.getElementById('recent-validations');
+            if (!container) return; // Si l'élément a été supprimé du HTML
+
+            const recent = DRIVERS.filter(d => d.status === 'approved' && d.lastVerification)
+                .sort((a, b) => new Date(b.lastVerification) - new Date(a.lastVerification))
+                .slice(0, 5);
+
+            if (recent.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-3 text-secondary">
+                        <p class="mb-0 small">Aucune validation récente</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recent.map(driver => `
+                <div class="d-flex align-items-center gap-3 mb-3 p-2 border-bottom border-secondary">
+                    <div class="rounded-circle bg-success p-2">
+                        <i class="fas fa-check text-white"></i>
+                    </div>
+                    <div>
+                        <div class="small fw-bold">${driver.name}</div>
+                        <div class="text-secondary" style="font-size: 0.7rem;">${driver.lastVerification}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getDocumentIcon(type) {
+            const icons = {
+                'permis': 'fas fa-id-card',
+                'cni': 'fas fa-address-card',
+                'assurance': 'fas fa-file-contract',
+                'contrat': 'fas fa-file-signature'
+            };
+            return icons[type] || 'fas fa-file';
+        }
+
+        function updateKYCStats() {
+            const validated = DRIVERS.filter(d => d.status === 'approved').length;
+            const pending = DRIVERS.filter(d => d.status === 'pending').length;
+            const total = DRIVERS.length;
+
+            const totalDocs = DRIVERS.reduce((sum, driver) => sum + driver.documents.length, 0);
+            const verifiedDocs = DRIVERS.reduce((sum, driver) =>
+                sum + driver.documents.filter(d => d.verified).length, 0);
+
+            // Remplissage des nouveaux IDs
+            if (document.getElementById('total-drivers-count'))
+                document.getElementById('total-drivers-count').textContent = total;
+
+            if (document.getElementById('validated-count'))
+                document.getElementById('validated-count').textContent = validated;
+
+            if (document.getElementById('pending-count'))
+                document.getElementById('pending-count').textContent = pending;
+
+            if (document.getElementById('verified-docs'))
+                document.getElementById('verified-docs').textContent = `${verifiedDocs}/${totalDocs}`;
+
+            // Mise à jour du badge dans la barre latérale si présent
+            const kycBadge = document.getElementById('kyc-badge');
+            if (kycBadge) kycBadge.textContent = pending;
+        }
+
+        function updateRecentValidations() {
+            const container = document.getElementById('recent-validations');
+            const recent = DRIVERS.filter(d => d.status === 'approved' && d.lastVerification)
+                .sort((a, b) => new Date(b.lastVerification) - new Date(a.lastVerification))
+                .slice(0, 5);
+
+            if (recent.length === 0) {
+                container.innerHTML = `
+            <div class="text-center py-3 text-secondary">
+                <i class="fas fa-history fa-2x mb-2"></i>
+                <p class="mb-0 small">Aucune validation récente</p>
+            </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = recent.map(driver => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+            <div>
+                <div class="fw-bold">${driver.name}</div>
+                <div class="small text-secondary">${driver.vehicle}</div>
+            </div>
+            <div class="small text-secondary">${driver.lastVerification}</div>
+        </div>
+    `).join('');
+        }
+
+        function closeDocumentModal() {
+            document.getElementById('document-modal').classList.remove('active');
+        }
+
+        function refreshKYCList() {
+            updateKYCList();
+            updateKYCStats();
+            showNotification('🔄 Liste actualisée', 'Les données KYC ont été rafraîchies', 'info');
+        }
+
+        // Effet de zoom sur le document
+        let isZoomed = false;
+        document.addEventListener('click', function (e) {
+            if (e.target.id === 'current-doc-img') {
+                isZoomed = !isZoomed;
+                e.target.style.transform = isZoomed ? 'scale(1.5)' : 'scale(1)';
+                e.target.style.cursor = isZoomed ? 'zoom-out' : 'zoom-in';
+                const hint = document.getElementById('doc-zoom-hint');
+                if (hint) {
+                    hint.innerHTML = isZoomed ?
+                        '<i class="fas fa-search-minus"></i> Cliquez pour réduire' :
+                        '<i class="fas fa-search-plus"></i> Cliquez pour zoomer';
+                }
+            }
+        });
+
+        // =============================================
+        // GESTION FLOTTE COMPLÈTE
+        // =============================================
+
+        function initFleetData() {
+            updateFleetTable();
+            updateFleetStats();
+            updateMaintenanceList();
+            updateFleetAlerts();
+        }
+
+        function updateFleetTable() {
+            const tableBody = document.getElementById('fleet-table');
+
+            tableBody.innerHTML = FLEET_DATA.vehicles.map(vehicle => {
+                const driver = DRIVERS.find(d => d.id === vehicle.driverId);
+                const driverName = driver ? driver.name : 'Non assigné';
+                const statusBadge = getVehicleStatusBadge(vehicle.status);
+                const lastActivity = vehicle.lastMaintenance || 'N/A';
+
+                return `
+            <tr onclick="selectVehicle(${vehicle.id})" style="cursor: pointer;">
+                <td>
+                    <div class="fw-bold">${vehicle.model}</div>
+                    <div class="small text-secondary">${vehicle.year} • ${vehicle.type}</div>
+                </td>
+                <td class="fw-bold">${vehicle.plate}</td>
+                <td>${driverName}</td>
+                <td>${statusBadge}</td>
+                <td>${lastActivity}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); editVehicle(${vehicle.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning ms-1" onclick="event.stopPropagation(); scheduleMaintenance(${vehicle.id})">
+                        <i class="fas fa-wrench"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+            }).join('');
+        }
+
+        function getVehicleStatusBadge(status) {
+            const badges = {
+                'active': '<span class="badge bg-success">Actif</span>',
+                'maintenance': '<span class="badge bg-warning">Maintenance</span>',
+                'inactive': '<span class="badge bg-secondary">Inactif</span>'
+            };
+            return badges[status] || '<span class="badge bg-secondary">Inconnu</span>';
+        }
+
+        function updateFleetStats() {
+            const totalVehicles = FLEET_DATA.vehicles.length;
+            const activeVehicles = FLEET_DATA.vehicles.filter(v => v.status === 'active').length;
+            const maintenanceVehicles = FLEET_DATA.vehicles.filter(v => v.status === 'maintenance').length;
+            const problemVehicles = FLEET_DATA.vehicles.filter(v => v.issues && v.issues.length > 0).length;
+
+            // Mettre à jour les compteurs
+            document.getElementById('total-vehicles-count').textContent = totalVehicles;
+            document.getElementById('active-vehicles-count').textContent = activeVehicles;
+            document.getElementById('maintenance-vehicles').textContent = maintenanceVehicles;
+            document.getElementById('problem-vehicles').textContent = problemVehicles;
+
+            // Mettre à jour le dashboard aussi
+            document.getElementById('dashboard-total-vehicles').textContent = totalVehicles;
+        }
+
+        function updateMaintenanceList() {
+            const container = document.getElementById('maintenance-list');
+            const maintenanceVehicles = FLEET_DATA.vehicles.filter(v =>
+                v.status === 'maintenance' || (v.nextMaintenance && new Date(v.nextMaintenance) < new Date())
+            );
+
+            if (maintenanceVehicles.length === 0) {
+                container.innerHTML = `
+            <div class="text-center py-3 text-secondary">
+                <i class="fas fa-tools fa-2x mb-2"></i>
+                <p class="mb-0 small">Aucune maintenance programmée</p>
+            </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = maintenanceVehicles.map(vehicle => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+            <div>
+                <div class="fw-bold">${vehicle.model}</div>
+                <div class="small text-secondary">${vehicle.plate}</div>
+                ${vehicle.issues.length > 0 ? `
+                    <div class="small text-danger mt-1">
+                        <i class="fas fa-exclamation-circle"></i> ${vehicle.issues[0]}
+                    </div>
+                ` : ''}
+            </div>
+            <div class="text-end">
+                <div class="small text-secondary">${vehicle.nextMaintenance}</div>
+                <span class="badge ${vehicle.status === 'maintenance' ? 'bg-warning' : 'bg-info'}">
+                    ${vehicle.status === 'maintenance' ? 'En cours' : 'À programmer'}
+                </span>
+            </div>
+        </div>
+    `).join('');
+        }
+
+        function updateFleetAlerts() {
+            const container = document.getElementById('fleet-alerts');
+
+            if (FLEET_DATA.alerts.length === 0) {
+                container.innerHTML = `
+            <div class="text-center py-3 text-secondary">
+                <i class="fas fa-bell-slash fa-2x mb-2"></i>
+                <p class="mb-0 small">Aucune alerte récente</p>
+            </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = FLEET_DATA.alerts.slice(0, 5).map(alert => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+            <div>
+                <div class="small">${alert.message}</div>
+                <div class="small text-secondary">${alert.vehicle}</div>
+            </div>
+            <div class="small text-secondary">${alert.time}</div>
+        </div>
+    `).join('');
+        }
+
+        function addNewVehicle() {
+            document.getElementById('vehicle-modal').classList.add('active');
+        }
+
+        function closeVehicleModal() {
+            document.getElementById('vehicle-modal').classList.remove('active');
+        }
+
+        function saveNewVehicle() {
+            const model = document.getElementById('vehicle-model').value;
+            const plate = document.getElementById('vehicle-plate').value;
+            const year = document.getElementById('vehicle-year').value;
+            const type = document.getElementById('vehicle-type').value;
+            const mileage = document.getElementById('vehicle-mileage').value;
+            const status = document.getElementById('vehicle-status').value;
+
+            const newVehicle = {
+                id: FLEET_DATA.vehicles.length + 1,
+                model: model,
+                plate: plate,
+                year: parseInt(year),
+                type: type,
+                mileage: parseInt(mileage),
+                status: status,
+                driverId: null,
+                lastMaintenance: new Date().toISOString().split('T')[0],
+                nextMaintenance: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                issues: []
+            };
+
+            FLEET_DATA.vehicles.push(newVehicle);
+
+            // Ajouter une alerte
+            FLEET_DATA.alerts.unshift({
+                id: FLEET_DATA.alerts.length + 1,
+                message: `Nouveau véhicule ajouté: ${model}`,
+                vehicle: plate,
+                time: new Date().toLocaleTimeString('fr-FR'),
+                type: 'info'
+            });
+
+            closeVehicleModal();
+            updateFleetTable();
+            updateFleetStats();
+            updateMaintenanceList();
+            updateFleetAlerts();
+
+            showNotification('✅ Véhicule ajouté', `${model} (${plate}) a été ajouté à la flotte`, 'success');
+
+            // Réinitialiser le formulaire
+            document.getElementById('vehicle-form').reset();
+        }
+
+        function selectVehicle(vehicleId) {
+            selectedVehicle = FLEET_DATA.vehicles.find(v => v.id === vehicleId);
+            if (selectedVehicle) {
+                showVehicleDetails(selectedVehicle);
+            }
+        }
+
+        function showVehicleDetails(vehicle) {
+            const driver = DRIVERS.find(d => d.id === vehicle.driverId);
+
+            alert(`Détails du véhicule:
+    
+Marque/Modèle: ${vehicle.model}
+Plaque: ${vehicle.plate}
+Année: ${vehicle.year}
+Type: ${vehicle.type}
+Kilométrage: ${vehicle.mileage} km
+Statut: ${vehicle.status}
+Chauffeur: ${driver ? driver.name : 'Non assigné'}
+Dernière maintenance: ${vehicle.lastMaintenance}
+Prochaine maintenance: ${vehicle.nextMaintenance}
+${vehicle.issues.length > 0 ? `Problèmes: ${vehicle.issues.join(', ')}` : ''}`);
+        }
+
+        function editVehicle(vehicleId) {
+            const vehicle = FLEET_DATA.vehicles.find(v => v.id === vehicleId);
+            if (vehicle) {
+                // Pré-remplir le formulaire
+                document.getElementById('vehicle-model').value = vehicle.model;
+                document.getElementById('vehicle-plate').value = vehicle.plate;
+                document.getElementById('vehicle-year').value = vehicle.year;
+                document.getElementById('vehicle-type').value = vehicle.type;
+                document.getElementById('vehicle-mileage').value = vehicle.mileage;
+                document.getElementById('vehicle-status').value = vehicle.status;
+
+                // Changer le texte du bouton
+                document.querySelector('#vehicle-form button[type="submit"]').innerHTML =
+                    '<i class="fas fa-save me-2"></i>Mettre à jour';
+
+                // Modifier l'événement submit
+                const form = document.getElementById('vehicle-form');
+                form.onsubmit = function (e) {
+                    e.preventDefault();
+                    updateVehicle(vehicleId);
+                };
+
+                addNewVehicle();
+            }
+        }
+
+        function updateVehicle(vehicleId) {
+            const vehicle = FLEET_DATA.vehicles.find(v => v.id === vehicleId);
+            if (vehicle) {
+                vehicle.model = document.getElementById('vehicle-model').value;
+                vehicle.plate = document.getElementById('vehicle-plate').value;
+                vehicle.year = document.getElementById('vehicle-year').value;
+                vehicle.type = document.getElementById('vehicle-type').value;
+                vehicle.mileage = document.getElementById('vehicle-mileage').value;
+                vehicle.status = document.getElementById('vehicle-status').value;
+
+                closeVehicleModal();
+                updateFleetTable();
+                updateFleetStats();
+
+                showNotification('✅ Véhicule mis à jour', `${vehicle.model} a été modifié`, 'success');
+
+                // Réinitialiser le formulaire
+                document.getElementById('vehicle-form').reset();
+                document.querySelector('#vehicle-form button[type="submit"]').innerHTML =
+                    '<i class="fas fa-save me-2"></i>Enregistrer le véhicule';
+                document.getElementById('vehicle-form').onsubmit = function (e) {
+                    e.preventDefault();
+                    saveNewVehicle();
+                };
+            }
+        }
+
+        function scheduleMaintenance(vehicleId) {
+            const vehicle = FLEET_DATA.vehicles.find(v => v.id === vehicleId);
+            if (vehicle) {
+                const date = prompt('Date de maintenance (AAAA-MM-JJ):', vehicle.nextMaintenance);
+                if (date) {
+                    vehicle.nextMaintenance = date;
+                    vehicle.status = 'maintenance';
+
+                    updateFleetTable();
+                    updateFleetStats();
+                    updateMaintenanceList();
+
+                    showNotification('🛠️ Maintenance programmée',
+                        `Maintenance programmée pour ${vehicle.model} le ${date}`, 'info');
+                }
+            }
+        }
+
+        // =============================================
+        // COMMUNICATION COMPLÈTE
+        // =============================================
+
+        function initCommunicationData() {
+            updateConnectedDrivers();
+            updateRecipientSelect();
+        }
+
+        function updateConnectedDrivers() {
+            const container = document.getElementById('connected-drivers');
+            const activeDrivers = DRIVERS.filter(d => d.status === 'approved');
+
+            if (activeDrivers.length === 0) {
+                container.innerHTML = `
+            <div class="text-center py-4 text-secondary">
+                <i class="fas fa-users-slash fa-2x mb-3"></i>
+                <p class="mb-0 small">Aucun chauffeur connecté</p>
+            </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = activeDrivers.map(driver => {
+                const isOnTrip = trips.some(t => t.driverId === driver.id && t.status === 'active');
+
+                return `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary" 
+                 onclick="selectDriverForChat(${driver.id})" 
+                 style="cursor: pointer;">
+                <div>
+                    <div class="fw-bold">${driver.name}</div>
+                    <div class="small text-secondary">${driver.vehicle}</div>
+                </div>
+                <div>
+                    <span class="badge ${isOnTrip ? 'bg-success' : 'bg-secondary'}">
+                        ${isOnTrip ? 'En course' : 'Disponible'}
+                    </span>
+                </div>
+            </div>
+        `;
+            }).join('');
+        }
+
+        function updateRecipientSelect() {
+            const select = document.getElementById('recipient-select');
+            select.innerHTML = '<option value="">Sélectionner un chauffeur</option>';
+
+            DRIVERS.filter(d => d.status === 'approved').forEach(driver => {
+                select.innerHTML += `<option value="${driver.id}">${driver.name} - ${driver.vehicle}</option>`;
+            });
+        }
+
+        function selectDriverForChat(driverId) {
+            const driver = DRIVERS.find(d => d.id === driverId);
+            if (!driver) return;
+
+            selectedDriver = driver;
+            document.getElementById('recipient-select').value = driverId;
+
+            // Charger la conversation
+            loadConversation(driverId);
+        }
+
+        function loadConversation(driverId) {
+            const container = document.getElementById('conversation-container');
+
+            // Simuler une conversation existante
+            const conversation = [
+                { id: 1, sender: 'system', message: 'Bonjour, tout va bien ?', time: '10:30' },
+                { id: 2, sender: 'driver', message: 'Oui, tout va bien, merci.', time: '10:31' },
+                { id: 3, sender: 'system', message: 'Position confirmée ?', time: '10:32' },
+                { id: 4, sender: 'driver', message: 'Position confirmée, arrivée dans 10 minutes.', time: '10:33' }
+            ];
+
+            currentConversation = conversation;
+            renderConversation();
+        }
+
+        function renderConversation() {
+            const container = document.getElementById('conversation-container');
+
+            if (currentConversation.length === 0) {
+                container.innerHTML = `
+            <div class="text-center py-5 text-secondary">
+                <i class="fas fa-comments fa-3x mb-3"></i>
+                <p class="mb-0">Aucun message échangé</p>
+                <p class="small mt-2">Envoyez votre premier message</p>
+            </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = currentConversation.map(msg => `
+        <div class="message ${msg.sender === 'system' ? 'sent' : 'received'}">
+            <div>${msg.message}</div>
+            <div class="message-time">${msg.time}</div>
+        </div>
+    `).join('');
+
+            // Scroll vers le bas
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            const recipientId = document.getElementById('recipient-select').value;
+
+            if (!message) {
+                alert('Veuillez écrire un message');
+                return;
+            }
+
+            if (!recipientId) {
+                alert('Veuillez sélectionner un destinataire');
+                return;
+            }
+
+            const driver = DRIVERS.find(d => d.id == recipientId);
+            if (!driver) return;
+
+            // Ajouter le message envoyé
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+            currentConversation.push({
+                id: currentConversation.length + 1,
+                sender: 'system',
+                message: message,
+                time: timeStr
+            });
+
+            // Simuler une réponse
+            setTimeout(() => {
+                const responses = [
+                    "Message reçu, tout va bien.",
+                    "Position confirmée, pas de problème.",
+                    "Conducteur et passagers en sécurité.",
+                    "Opération normale en cours."
+                ];
+
+                const response = responses[Math.floor(Math.random() * responses.length)];
+
+                currentConversation.push({
+                    id: currentConversation.length + 1,
+                    sender: 'driver',
+                    message: response,
+                    time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                });
+
+                renderConversation();
+                addToCommunicationHistory(`Message à ${driver.name}: ${message.substring(0, 30)}...`);
+            }, 1000);
+
+            // Mettre à jour l'affichage
+            renderConversation();
+            messageInput.value = '';
+
+            // Ajouter à l'historique
+            addToCommunicationHistory(`Message envoyé à ${driver.name}: ${message}`);
+
+            showNotification('📤 Message envoyé', `Message envoyé à ${driver.name}`, 'success');
+        }
+
+        function handleMessageKeypress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function sendQuickMessage(type) {
+            const message = COMMUNICATION_DATA.quickMessages[type];
+            if (message) {
+                document.getElementById('message-input').value = message;
+            }
+        }
+
+        function startAudioMonitoring() {
+            showNotification('🎤 Écoute activée', 'L\'écoute audio est maintenant active', 'info');
+            addToCommunicationHistory('Système d\'écoute audio activé');
+        }
+
+        function startRecording() {
+            showNotification('🔴 Enregistrement', 'L\'enregistrement audio a démarré', 'info');
+            addToCommunicationHistory('Enregistrement audio démarré');
+        }
+
+        function sendEmergencyAlert() {
+            if (!selectedDriver) {
+                alert('Veuillez d\'abord sélectionner un chauffeur');
+                return;
+            }
+
+            if (confirm(`Envoyer une alerte SOS à ${selectedDriver.name} ?`)) {
+                const message = "🚨 ALERTE SOS: Répondez immédiatement si tout va bien !";
+                document.getElementById('message-input').value = message;
+                sendMessage();
+
+                showNotification('🚨 Alerte SOS', `Alerte envoyée à ${selectedDriver.name}`, 'warning');
+            }
+        }
+
+        function addToCommunicationHistory(entry) {
+            const container = document.getElementById('communication-history');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('fr-FR');
+
+            const historyItem = document.createElement('div');
+            historyItem.className = 'd-flex justify-content-between align-items-center py-2 border-bottom border-secondary';
+            historyItem.innerHTML = `
+        <div>
+            <div class="small">${entry}</div>
+        </div>
+        <div class="small text-secondary">${timeStr}</div>
+    `;
+
+            container.insertBefore(historyItem, container.firstChild);
+
+            // Limiter à 10 entrées
+            while (container.children.length > 10) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // =============================================
+        // DASHBOARD COMPLET
+        // =============================================
+
+        function initDashboardData() {
+            updateDashboardStats();
+            updateRecentActivity();
+            updateRecentActions();
+        }
+
+        function updateDashboardStats() {
+            const totalVehicles = FLEET_DATA.vehicles.length;
+            const activeDrivers = DRIVERS.filter(d => d.status === 'approved').length;
+            const todayAlerts = FLEET_DATA.alerts.filter(a =>
+                new Date().toLocaleDateString('fr-FR') === new Date().toLocaleDateString('fr-FR')
+            ).length;
+            const totalTrips = trips.length;
+
+            document.getElementById('dashboard-total-vehicles').textContent = totalVehicles;
+            document.getElementById('dashboard-active-drivers').textContent = activeDrivers;
+            document.getElementById('dashboard-today-alerts').textContent = todayAlerts;
+            document.getElementById('dashboard-total-trips').textContent = totalTrips;
+        }
+
+        function updateRecentActivity() {
+            const container = document.getElementById('recent-activity');
+
+            // Simuler des données d'activité
+            const activities = [
+                { time: '08:30', action: 'Surveillance démarrée', type: 'system' },
+                { time: '09:15', action: 'Course #1 créée', type: 'trip' },
+                { time: '10:45', action: 'Chauffeur Jean Konan validé', type: 'kyc' },
+                { time: '11:30', action: 'Alerte de déviation', type: 'alert' },
+                { time: '12:15', action: 'Course #1 terminée', type: 'trip' },
+                { time: '13:00', action: 'Maintenance programmée', type: 'fleet' }
+            ];
+
+            container.innerHTML = activities.map(activity => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+            <div>
+                <div class="fw-bold">${activity.action}</div>
+                <div class="small text-secondary">${getActivityIcon(activity.type)} ${activity.type.toUpperCase()}</div>
+            </div>
+            <div class="small text-secondary">${activity.time}</div>
+        </div>
+    `).join('');
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                'system': 'fas fa-cog',
+                'trip': 'fas fa-route',
+                'kyc': 'fas fa-user-check',
+                'alert': 'fas fa-exclamation-triangle',
+                'fleet': 'fas fa-car'
+            };
+            return icons[type] || 'fas fa-circle';
+        }
+
+        function updateRecentActions() {
+            const container = document.getElementById('recent-actions');
+
+            // Simuler des actions récentes
+            const actions = [
+                { user: 'Admin', action: 'a validé un chauffeur', time: 'il y a 2h' },
+                { user: 'System', action: 'a détecté une déviation', time: 'il y a 1h' },
+                { user: 'Admin', action: 'a envoyé un message', time: 'il y a 45min' },
+                { user: 'System', action: 'a terminé une course', time: 'il y a 30min' }
+            ];
+
+            container.innerHTML = actions.map(action => `
+        <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+            <div>
+                <div class="small">
+                    <span class="fw-bold">${action.user}</span> ${action.action}
+                </div>
+            </div>
+            <div class="small text-secondary">${action.time}</div>
+        </div>
+    `).join('');
+        }
+
+        // =============================================
+        // GESTION COURSES (existant)
+        // =============================================
+
+        function initTripData() {
+            updateDriverSelectors();
+        }
+
+        function updateDriverSelectors() {
+            const driverSelect = document.getElementById('trip-driver-select');
+            const approvedDrivers = DRIVERS.filter(d => d.status === 'approved');
+
+            driverSelect.innerHTML = '<option value="">Sélectionner un chauffeur</option>';
+            approvedDrivers.forEach(driver => {
+                driverSelect.innerHTML += `<option value="${driver.id}">${driver.name} - ${driver.vehicle}</option>`;
+            });
+        }
+
+        // =============================================
+        // FONCTIONS UTILITAIRES
+        // =============================================
+
+        function showNotification(title, message, type = 'info') {
+            // Créer une notification
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+
+            notification.innerHTML = `
+        <div class="d-flex align-items-start">
+            <div class="flex-grow-1">
+                <strong>${title}</strong>
+                <div class="small mt-1">${message}</div>
+            </div>
+            <button type="button" class="btn-close btn-sm" onclick="this.parentElement.parentElement.remove()" style="margin-left: 10px;"></button>
+        </div>
+    `;
+
+            document.body.appendChild(notification);
+
+            // Supprimer automatiquement après 5 secondes
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+
+        // =============================================
+        // EXPORT DES FONCTIONS GLOBALES
+        // =============================================
+
+        window.showSection = showSection;
+        window.toggleSidebar = toggleSidebar;
+        window.toggleControlPanel = toggleControlPanel;
+        window.viewDriverDocuments = viewDriverDocuments;
+        window.toggleDocumentVerification = toggleDocumentVerification;
+        window.saveDocumentVerification = saveDocumentVerification;
+        window.approveDriverKYC = approveDriverKYC;
+        window.rejectDriverKYC = rejectDriverKYC;
+        window.closeDocumentModal = closeDocumentModal;
+        window.refreshKYCList = refreshKYCList;
+        window.addNewVehicle = addNewVehicle;
+        window.closeVehicleModal = closeVehicleModal;
+        window.selectVehicle = selectVehicle;
+        window.editVehicle = editVehicle;
+        window.scheduleMaintenance = scheduleMaintenance;
+        window.selectDriverForChat = selectDriverForChat;
+        window.sendMessage = sendMessage;
+        window.handleMessageKeypress = handleMessageKeypress;
+        window.sendQuickMessage = sendQuickMessage;
+        window.startAudioMonitoring = startAudioMonitoring;
+        window.startRecording = startRecording;
+        window.sendEmergencyAlert = sendEmergencyAlert;
+
+        // Ces fonctions seraient définies dans le code des sections précédentes
+        window.startSurveillance = function () {
+            if (isSimulationRunning) return;
+            isSimulationRunning = true;
+            showNotification('🛰️ SURVEILLANCE ACTIVÉE', 'Système Snap-to-Road opérationnel.', 'success');
+
+            // Simuler des événements pour la démo
+            setTimeout(window.declencherAlerteFauxCode, 5000);
+            setTimeout(window.demarrerMoniteurSecousse, 8000);
+        };
+
+        window.declencherInterventionUrgence = function () {
+            showNotification('🚨 INTERVENTION D\'URGENCE', 'Unités de secours alertées. Position Snap-to-road envoyée.', 'danger');
+        };
+
+        /**
+         * Exemple d'intégration de mise à jour de course avec Snap-to-Road
+         */
+        function mettreAJourPositionVehicule(idVehicule, nouvellePos, itineraire) {
+            const colle = window.collerALaRoute ? window.collerALaRoute(nouvellePos, itineraire) : nouvellePos;
+            // Logique pour mettre à jour le marqueur Leaflet...
+        }
+
+
+        window.simulateEmergency = function () { /* ... */ };
+
+    </script>
+</body>
+
+</html>
