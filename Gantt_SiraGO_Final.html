@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>MS Project - Planning SiraGO Soutenance</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background-color: #f4f4f4; color: #333; }
+        .header { background: #2c3e50; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .toolbar { background: #eee; padding: 5px 20px; border-bottom: 1px solid #ccc; display: flex; gap: 15px; font-size: 11px; }
+        .gantt-wrapper { display: flex; height: calc(100vh - 80px); background: #fff; overflow: hidden; }
+        
+        /* Table des tâches */
+        .task-list { width: 500px; border-right: 2px solid #999; overflow-y: auto; flex-shrink: 0; }
+        .row { display: flex; border-bottom: 1px solid #ddd; height: 24px; align-items: center; font-size: 11px; }
+        .row-header { background: #f0f0f0; font-weight: bold; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #999; }
+        .col { padding: 0 5px; border-right: 1px solid #ddd; height: 100%; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
+        .col-id { width: 30px; justify-content: center; }
+        .col-mode { width: 25px; justify-content: center; }
+        .col-name { width: 280px; }
+        .col-dur { width: 50px; justify-content: center; }
+        .col-date { width: 70px; }
+
+        /* Chart */
+        .gantt-chart { flex-grow: 1; overflow: auto; position: relative; background: #fff; }
+        .timeline { position: sticky; top: 0; background: #f0f0f0; z-index: 5; height: 48px; border-bottom: 1px solid #999; }
+        .months { display: flex; height: 24px; border-bottom: 1px solid #ccc; }
+        .month { min-width: 140px; border-right: 1px solid #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; }
+        .grid { position: relative; height: 1200px; background-image: linear-gradient(90deg, #e5e5e5 1px, transparent 1px); background-size: 20px 100%; }
+        
+        /* Barres */
+        .bar-row { height: 24px; border-bottom: 1px solid #eee; position: relative; width: 2000px; }
+        .bar { position: absolute; top: 6px; height: 12px; background: #5fa2dd; border: 1px solid #4a80b0; border-radius: 1px; z-index: 2; }
+        .summary { background: #333; height: 4px; top: 10px; border-radius: 0; }
+        .milestone { position: absolute; width: 8px; height: 8px; background: #000; transform: rotate(45deg); top: 8px; }
+        
+        .level-0 { font-weight: bold; background: #e8f4fd !important; }
+        .level-1 { font-weight: bold; }
+        .indent-1 { padding-left: 15px; }
+        .indent-2 { padding-left: 30px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div>SiraGO_Planning_Final.mpp - Microsoft Project</div>
+    <div>Ramde Ramata - SOUTENANCE 2026</div>
+</div>
+
+<div class="toolbar">
+    <div>Fichier</div><div>Tâche</div><div>Ressource</div><div>Rapport</div><div>Affichage</div>
+</div>
+
+<div class="gantt-wrapper">
+    <div class="task-list">
+        <div class="row row-header">
+            <div class="col col-id">ID</div>
+            <div class="col col-mode">M</div>
+            <div class="col col-name">Nom de la tâche</div>
+            <div class="col col-dur">Durée</div>
+            <div class="col col-date">Début</div>
+            <div class="col col-date">Fin</div>
+        </div>
+
+        <!-- Task Data -->
+        <div class="row level-0"><div class="col col-id">0</div><div class="col col-mode">📌</div><div class="col col-name">PROJET SOUTENANCE</div><div class="col col-dur">110 j.</div><div class="col col-date">18/11/25</div><div class="col col-date">24/04/26</div></div>
+        
+        <div class="row level-1"><div class="col col-id">1</div><div class="col col-mode">⚙️</div><div class="col col-name indent-1">PLANIFICATION DU PROJET</div><div class="col col-dur">3 j.</div><div class="col col-date">18/11/25</div><div class="col col-date">20/11/25</div></div>
+        <div class="row"><div class="col col-id">2</div><div class="col col-mode">📌</div><div class="col col-name indent-2">Définir objectif et périmètre</div><div class="col col-dur">1 j.</div><div class="col col-date">18/11/25</div><div class="col col-date">18/11/25</div></div>
+        <div class="row"><div class="col col-id">3</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Cahier des charges & planning</div><div class="col col-dur">2 j.</div><div class="col col-date">19/11/25</div><div class="col col-date">20/11/25</div></div>
+
+        <div class="row level-1"><div class="col col-id">4</div><div class="col col-mode">📌</div><div class="col col-name indent-1">CONCEPTION</div><div class="col col-dur">14 j.</div><div class="col col-date">21/11/25</div><div class="col col-date">10/12/25</div></div>
+        <div class="row"><div class="col col-id">5</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Créer les maquettes UI/UX</div><div class="col col-dur">5 j.</div><div class="col col-date">27/11/25</div><div class="col col-date">03/12/25</div></div>
+        <div class="row"><div class="col col-id">6</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Définir architecture projet</div><div class="col col-dur">4 j.</div><div class="col col-date">03/12/25</div><div class="col col-date">08/12/25</div></div>
+
+        <div class="row level-1"><div class="col col-id">7</div><div class="col col-mode">📌</div><div class="col col-name indent-1">DEVELOPPEMENT PARTIE 1</div><div class="col col-dur">32 j.</div><div class="col col-date">15/12/25</div><div class="col col-date">22/01/26</div></div>
+        <div class="row"><div class="col col-id">8</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Développer le backend</div><div class="col col-dur">10 j.</div><div class="col col-date">16/12/25</div><div class="col col-date">27/12/25</div></div>
+        <div class="row"><div class="col col-id">9</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Préparer BDD et API</div><div class="col col-dur">8 j.</div><div class="col col-date">28/12/25</div><div class="col col-date">05/01/26</div></div>
+
+        <div class="row level-1"><div class="col col-id">10</div><div class="col col-mode">📌</div><div class="col col-name indent-1">DEVELOPPEMENT PARTIE 2</div><div class="col col-dur">15 j.</div><div class="col col-date">14/01/26</div><div class="col col-date">03/02/26</div></div>
+        <div class="row"><div class="col col-id">11</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Intégrer fonctionnalités</div><div class="col col-dur">5 j.</div><div class="col col-date">13/01/26</div><div class="col col-date">19/01/26</div></div>
+
+        <div class="row level-1"><div class="col col-id">12</div><div class="col col-mode">📌</div><div class="col col-name indent-1">REDACTION DU MÉMOIRE</div><div class="col col-dur">21 j.</div><div class="col col-date">18/02/26</div><div class="col col-date">18/03/26</div></div>
+        <div class="row"><div class="col col-id">13</div><div class="col col-mode">⚙️</div><div class="col col-name indent-2">Rédiger chapitres</div><div class="col col-dur">14 j.</div><div class="col col-date">18/02/26</div><div class="col col-date">09/03/26</div></div>
+
+        <div class="row level-1"><div class="col col-id">14</div><div class="col col-mode">📌</div><div class="col col-name indent-1">SOUTENANCE FINALE</div><div class="col col-dur">1 j.</div><div class="col col-date">24/04/26</div><div class="col col-date">24/04/26</div></div>
+    </div>
+
+    <!-- Graphique Gantt -->
+    <div class="gantt-chart">
+        <div class="timeline">
+            <div class="months">
+                <div class="month">Nov 25</div><div class="month">Déc 25</div><div class="month">Jan 26</div><div class="month">Fév 26</div><div class="month">Mar 26</div><div class="month">Avr 26</div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="bar-row"><div class="bar summary" style="left: 0px; width: 680px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 0px; width: 20px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 0px; width: 10px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 10px; width: 10px;"></div></div>
+            
+            <div class="bar-row"><div class="bar summary" style="left: 30px; width: 100px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 70px; width: 30px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 100px; width: 30px;"></div></div>
+            
+            <div class="bar-row"><div class="bar summary" style="left: 140px; width: 220px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 150px; width: 60px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 210px; width: 50px;"></div></div>
+
+            <div class="bar-row"><div class="bar summary" style="left: 360px; width: 100px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 450px; width: 30px;"></div></div>
+
+            <div class="bar-row"><div class="bar summary" style="left: 500px; width: 120px;"></div></div>
+            <div class="bar-row"><div class="bar" style="left: 500px; width: 80px;"></div></div>
+
+            <div class="bar-row"><div class="milestone" style="left: 680px;"></div></div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

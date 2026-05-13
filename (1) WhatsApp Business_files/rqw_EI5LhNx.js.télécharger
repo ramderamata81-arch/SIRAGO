@@ -1,0 +1,3 @@
+;/*FB_PKG_DELIM*/
+
+__d("react-relay/relay-hooks/useMutationAction_EXPERIMENTAL",["Promise","react","react-compiler-runtime","react-relay/relay-hooks/useRelayEnvironment","relay-runtime"],(function(t,n,r,o,a,i){"use strict";var e,l,s=n("react-compiler-runtime").c,u=e||(e=n("react")),c=n("relay-runtime").commitMutation,d=u.useCallback;function m(e){var t=s(4),r=n("react-relay/relay-hooks/useRelayEnvironment")(),o,a;t[0]!==r||t[1]!==e?(o=function(o){return new(l||(l=n("Promise")))(function(t,n){c(r,{mutation:e,variables:o,onCompleted:function(n){t(n)},onError:function(t){n(t)}})})},a=[r,e],t[0]=r,t[1]=e,t[2]=o,t[3]=a):(o=t[2],a=t[3]);var i=d(o,a);return i}a.exports=m}),null);

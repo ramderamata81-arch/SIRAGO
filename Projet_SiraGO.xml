@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+	<Name>Projet_SiraGO</Name>
+	<Title>Planning SiraGO Soutenance 2026</Title>
+	<Company>IUA</Company>
+	<Author>Ramde Ramata</Author>
+	<StartDate>2025-12-01T08:00:00</StartDate>
+	<FinishDate>2026-04-18T17:00:00</FinishDate>
+	<CalendarUID>1</CalendarUID>
+	<DefaultStartTime>08:00:00</DefaultStartTime>
+	<DefaultFinishTime>17:00:00</DefaultFinishTime>
+	<Tasks>
+		<Task>
+			<UID>0</UID>
+			<ID>0</ID>
+			<Name>Projet SiraGO</Name>
+			<Type>1</Type>
+			<CreateDate>2026-04-11T12:00:00</CreateDate>
+			<WBS>0</WBS>
+			<OutlineNumber>0</OutlineNumber>
+			<OutlineLevel>0</OutlineLevel>
+			<Start>2025-12-01T08:00:00</Start>
+			<Finish>2026-04-18T17:00:00</Finish>
+			<Duration>PT960H0M0S</Duration>
+		</Task>
+		<!-- Phase 1 -->
+		<Task>
+			<UID>1</UID>
+			<ID>1</ID>
+			<Name>PHASE 1 : ANALYSE</Name>
+			<WBS>1</WBS>
+			<OutlineNumber>1</OutlineNumber>
+			<OutlineLevel>1</OutlineLevel>
+			<Start>2025-12-01T08:00:00</Start>
+			<Finish>2026-01-20T17:00:00</Finish>
+			<Summary>1</Summary>
+		</Task>
+		<Task>
+			<UID>2</UID>
+			<ID>2</ID>
+			<Name>Étude de faisabilité</Name>
+			<WBS>1.1</WBS>
+			<OutlineNumber>1.1</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2025-12-01T08:00:00</Start>
+			<Finish>2025-12-15T17:00:00</Finish>
+			<Duration>PT120H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>3</UID>
+			<ID>3</ID>
+			<Name>Cahier des charges</Name>
+			<WBS>1.2</WBS>
+			<OutlineNumber>1.2</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2025-12-16T08:00:00</Start>
+			<Finish>2026-01-05T17:00:00</Finish>
+			<Duration>PT160H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>4</UID>
+			<ID>4</ID>
+			<Name>Modélisation UML</Name>
+			<WBS>1.3</WBS>
+			<OutlineNumber>1.3</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-01-06T08:00:00</Start>
+			<Finish>2026-01-20T17:00:00</Finish>
+			<Duration>PT120H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<!-- Phase 2 -->
+		<Task>
+			<UID>5</UID>
+			<ID>5</ID>
+			<Name>PHASE 2 : CONCEPTION</Name>
+			<WBS>2</WBS>
+			<OutlineNumber>2</OutlineNumber>
+			<OutlineLevel>1</OutlineLevel>
+			<Start>2026-01-21T08:00:00</Start>
+			<Finish>2026-02-15T17:00:00</Finish>
+			<Summary>1</Summary>
+		</Task>
+		<Task>
+			<UID>6</UID>
+			<ID>6</ID>
+			<Name>Design UI/UX Elite Pro</Name>
+			<WBS>2.1</WBS>
+			<OutlineNumber>2.1</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-01-21T08:00:00</Start>
+			<Finish>2026-02-05T17:00:00</Finish>
+			<Duration>PT120H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>7</UID>
+			<ID>7</ID>
+			<Name>Architecture Système</Name>
+			<WBS>2.2</WBS>
+			<OutlineNumber>2.2</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-02-06T08:00:00</Start>
+			<Finish>2026-02-15T17:00:00</Finish>
+			<Duration>PT80H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<!-- Phase 3 -->
+		<Task>
+			<UID>8</UID>
+			<ID>8</ID>
+			<Name>PHASE 3 : DÉVELOPPEMENT</Name>
+			<WBS>3</WBS>
+			<OutlineNumber>3</OutlineNumber>
+			<OutlineLevel>1</OutlineLevel>
+			<Start>2026-02-16T08:00:00</Start>
+			<Finish>2026-04-10T17:00:00</Finish>
+			<Summary>1</Summary>
+		</Task>
+		<Task>
+			<UID>9</UID>
+			<ID>9</ID>
+			<Name>Backend Node.js API</Name>
+			<WBS>3.1</WBS>
+			<OutlineNumber>3.1</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-02-16T08:00:00</Start>
+			<Finish>2026-02-28T17:00:00</Finish>
+			<Duration>PT100H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>10</UID>
+			<ID>10</ID>
+			<Name>Module Géoloc / Sockets</Name>
+			<WBS>3.2</WBS>
+			<OutlineNumber>3.2</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-03-01T08:00:00</Start>
+			<Finish>2026-03-15T17:00:00</Finish>
+			<Duration>PT120H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>11</UID>
+			<ID>11</ID>
+			<Name>App Mobile (React Native)</Name>
+			<WBS>3.3</WBS>
+			<OutlineNumber>3.3</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-03-16T08:00:00</Start>
+			<Finish>2026-04-10T17:00:00</Finish>
+			<Duration>PT200H0M0S</Duration>
+			<PercentComplete>95</PercentComplete>
+		</Task>
+		<!-- Phase 4 -->
+		<Task>
+			<UID>12</UID>
+			<ID>12</ID>
+			<Name>PHASE 4 : STABILISATION</Name>
+			<WBS>4</WBS>
+			<OutlineNumber>4</OutlineNumber>
+			<OutlineLevel>1</OutlineLevel>
+			<Start>2026-04-11T08:00:00</Start>
+			<Finish>2026-04-17T17:00:00</Finish>
+			<Summary>1</Summary>
+		</Task>
+		<Task>
+			<UID>13</UID>
+			<ID>13</ID>
+			<Name>Débogage & Réparation BDD</Name>
+			<WBS>4.1</WBS>
+			<OutlineNumber>4.1</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-04-11T08:00:00</Start>
+			<Finish>2026-04-12T17:00:00</Finish>
+			<Duration>PT16H0M0S</Duration>
+			<PercentComplete>100</PercentComplete>
+		</Task>
+		<Task>
+			<UID>14</UID>
+			<ID>14</ID>
+			<Name>Tests E2E & Finalisation</Name>
+			<WBS>4.2</WBS>
+			<OutlineNumber>4.2</OutlineNumber>
+			<OutlineLevel>2</OutlineLevel>
+			<Start>2026-04-13T08:00:00</Start>
+			<Finish>2026-04-17T17:00:00</Finish>
+			<Duration>PT40H0M0S</Duration>
+			<PercentComplete>90</PercentComplete>
+		</Task>
+		<!-- Phase 5 -->
+		<Task>
+			<UID>15</UID>
+			<ID>15</ID>
+			<Name>Soutenance Finale</Name>
+			<WBS>5</WBS>
+			<OutlineNumber>5</OutlineNumber>
+			<OutlineLevel>1</OutlineLevel>
+			<Start>2026-04-18T09:00:00</Start>
+			<Finish>2026-04-18T10:00:00</Finish>
+			<Duration>PT1H0M0S</Duration>
+			<Milestone>1</Milestone>
+		</Task>
+	</Tasks>
+</Project>

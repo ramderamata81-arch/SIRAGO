@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiraGO Project Management Professional</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Logiciel Header Look */
+        .app-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            border-bottom: 2px solid #1a252f;
+        }
+
+        .toolbar {
+            background-color: #ecf0f1;
+            padding: 8px 20px;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .tool-btn {
+            padding: 4px 10px;
+            border: 1px solid #bdc3c7;
+            background: white;
+            border-radius: 3px;
+            cursor: default;
+        }
+
+        /* Gantt Table Structure */
+        .gantt-container {
+            display: flex;
+            height: calc(100vh - 85px);
+            background: white;
+        }
+
+        /* Left Grid (Tasks) */
+        .task-grid {
+            width: 450px;
+            border-right: 2px solid #bdc3c7;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .grid-header {
+            display: flex;
+            background: #f7f9f9;
+            border-bottom: 1px solid #bdc3c7;
+            font-weight: bold;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .col {
+            padding: 8px 5px;
+            border-right: 1px solid #dcdde1;
+            text-align: left;
+        }
+
+        .col-id { width: 30px; text-align: center; }
+        .col-name { width: 220px; }
+        .col-start { width: 80px; }
+        .col-end { width: 80px; }
+
+        .task-row {
+            display: flex;
+            border-bottom: 1px solid #f1f2f6;
+            font-size: 11px;
+            height: 30px;
+            align-items: center;
+        }
+
+        .task-row:nth-child(even) { background: #fafbfc; }
+
+        /* Right Gantt Chart (Timeline) */
+        .gantt-chart {
+            flex-grow: 1;
+            overflow-x: auto;
+            position: relative;
+            background-color: #fff;
+        }
+
+        .timeline-header {
+            height: 60px;
+            background: #f7f9f9;
+            border-bottom: 1px solid #bdc3c7;
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .months-row {
+            display: flex;
+            height: 30px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .month-cell {
+            min-width: 150px;
+            border-right: 1px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        .days-row {
+            display: flex;
+            height: 30px;
+        }
+
+        .day-cell {
+            min-width: 30px;
+            border-right: 1px solid #ecf0f1;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Chart Canvas */
+        .chart-canvas {
+            position: relative;
+            height: 1000px;
+            background-image: linear-gradient(90deg, #f1f2f6 1px, transparent 1px);
+            background-size: 30px 100%;
+        }
+
+        .gantt-bar-row {
+            height: 31px;
+            border-bottom: 1px solid #f1f2f6;
+            position: relative;
+        }
+
+        .bar {
+            position: absolute;
+            top: 6px;
+            height: 18px;
+            background: #3498db;
+            border: 1px solid #2980b9;
+            border-radius: 2px;
+            font-size: 10px;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding-left: 5px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            z-index: 2;
+        }
+
+        .progress {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: rgba(0,0,0,0.15);
+            width: 100%;
+        }
+
+        .dependency-line {
+            position: absolute;
+            height: 2px;
+            background: #7f8c8d;
+            z-index: 1;
+        }
+
+        /* Styles de tâches spécifiques */
+        .summary-bar { background: #2c3e50; height: 6px; top: 12px; border: none; }
+        .milestone { background: #e74c3c; width: 10px !important; height: 10px !important; transform: rotate(45deg); top: 10px; border: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div>Project Management Pro - SiraGO_V2.5.mpp</div>
+        <div>Utilisateur: Ramde Ramata | Soutenance 2026</div>
+    </div>
+
+    <div class="toolbar">
+        <div class="tool-btn">Fichier</div>
+        <div class="tool-btn">Tâche</div>
+        <div class="tool-btn">Ressource</div>
+        <div class="tool-btn">Affichage</div>
+        <div style="margin-left:auto">Zoom: 100%</div>
+    </div>
+
+    <div class="gantt-container">
+        <!-- Table des tâches -->
+        <div class="task-grid">
+            <div class="grid-header">
+                <div class="col col-id">ID</div>
+                <div class="col col-name">Nom de la tâche</div>
+                <div class="col col-start">Début</div>
+                <div class="col col-end">Fin</div>
+            </div>
+            
+            <div class="task-row"><div class="col col-id">1</div><div class="col col-name"><b>PHASE 1 : ANALYSE</b></div><div class="col col-start">01/12/25</div><div class="col col-end">15/01/26</div></div>
+            <div class="task-row"><div class="col col-id">1.1</div><div class="col col-name">&nbsp;&nbsp;Étude de faisabilité</div><div class="col col-start">01/12/25</div><div class="col col-end">15/12/25</div></div>
+            <div class="task-row"><div class="col col-id">1.2</div><div class="col col-name">&nbsp;&nbsp;Cahier des charges</div><div class="col col-start">16/12/25</div><div class="col col-end">05/01/26</div></div>
+            <div class="task-row"><div class="col col-id">1.3</div><div class="col col-name">&nbsp;&nbsp;Modélisation UML</div><div class="col col-start">06/01/26</div><div class="col col-end">20/01/26</div></div>
+            
+            <div class="task-row"><div class="col col-id">2</div><div class="col col-name"><b>PHASE 2 : CONCEPTION</b></div><div class="col col-start">21/01/26</div><div class="col col-end">15/02/26</div></div>
+            <div class="task-row"><div class="col col-id">2.1</div><div class="col col-name">&nbsp;&nbsp;Design UI/UX Elite Pro</div><div class="col col-start">21/01/26</div><div class="col col-end">05/02/26</div></div>
+            <div class="task-row"><div class="col col-id">2.2</div><div class="col col-name">&nbsp;&nbsp;Architecture Système</div><div class="col col-start">06/02/26</div><div class="col col-end">15/02/26</div></div>
+
+            <div class="task-row"><div class="col col-id">3</div><div class="col col-name"><b>PHASE 3 : DÉVELOPPEMENT</b></div><div class="col col-start">16/02/26</div><div class="col col-end">30/03/26</div></div>
+            <div class="task-row"><div class="col col-id">3.1</div><div class="col col-name">&nbsp;&nbsp;Backend Node.js API</div><div class="col col-start">16/02/26</div><div class="col col-end">28/02/26</div></div>
+            <div class="task-row"><div class="col col-id">3.2</div><div class="col col-name">&nbsp;&nbsp;Module Géoloc & Socket</div><div class="col col-start">01/03/26</div><div class="col col-end">15/03/26</div></div>
+            <div class="task-row"><div class="col col-id">3.3</div><div class="col col-name">&nbsp;&nbsp;App Mobile (React Native)</div><div class="col col-start">16/03/26</div><div class="col col-end">10/04/26</div></div>
+            
+            <div class="task-row"><div class="col col-id">4</div><div class="col col-name"><b>PHASE 4 : STABILISATION</b></div><div class="col col-start">11/04/26</div><div class="col col-end">17/04/26</div></div>
+            <div class="task-row"><div class="col col-id">4.1</div><div class="col col-name">&nbsp;&nbsp;Débogage & Réparation BDD</div><div class="col col-start">11/04/26</div><div class="col col-end">12/04/26</div></div>
+            <div class="task-row"><div class="col col-id">4.2</div><div class="col col-name">&nbsp;&nbsp;Tests E2E & Finalisation</div><div class="col col-start">13/04/26</div><div class="col col-end">17/04/26</div></div>
+
+            <div class="task-row"><div class="col col-id">5</div><div class="col col-name"><b>PHASE 5 : SOUTENANCE</b></div><div class="col col-start">18/04/26</div><div class="col col-end">18/04/26</div></div>
+            <div class="task-row"><div class="col col-id">5.1</div><div class="col col-name">&nbsp;&nbsp;Soutenance Finale</div><div class="col col-start">18/04/26</div><div class="col col-end">18/04/26</div></div>
+        </div>
+
+        <!-- Timeline Gantt -->
+        <div class="gantt-chart">
+            <div class="timeline-header">
+                <div class="months-row">
+                    <div class="month-cell" style="min-width: 150px">Décembre</div>
+                    <div class="month-cell" style="min-width: 210px">Janvier 2026</div>
+                    <div class="month-cell" style="min-width: 180px">Février</div>
+                    <div class="month-cell" style="min-width: 210px">Mars</div>
+                    <div class="month-cell" style="min-width: 150px">Avril</div>
+                </div>
+            </div>
+
+            <div class="chart-canvas">
+                <!-- Rangées de barres -->
+                <div class="gantt-bar-row"><div class="bar summary-bar" style="left: 0px; width: 150px"></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 0px; width: 60px">100%<div class="progress"></div></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 60px; width: 90px">100%<div class="progress"></div></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 150px; width: 60px">100%<div class="progress"></div></div></div>
+                
+                <div class="gantt-bar-row"><div class="bar summary-bar" style="left: 210px; width: 120px"></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 210px; width: 70px">100%<div class="progress"></div></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 280px; width: 50px">100%<div class="progress"></div></div></div>
+
+                <div class="gantt-bar-row"><div class="bar summary-bar" style="left: 330px; width: 400px"></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 330px; width: 100px">100%<div class="progress"></div></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 430px; width: 120px">100%<div class="progress"></div></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 550px; width: 180px">95%<div class="progress" style="width: 95%"></div></div></div>
+
+                <div class="gantt-bar-row"><div class="bar summary-bar" style="left: 730px; width: 60px"></div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 730px; width: 20px; background: #27ae60">100%</div></div>
+                <div class="gantt-bar-row"><div class="bar" style="left: 750px; width: 40px; background: #27ae60">90%</div></div>
+
+                <div class="gantt-bar-row"><div class="bar summary-bar" style="left: 790px; width: 10px"></div></div>
+                <div class="gantt-bar-row"><div class="milestone" style="left: 795px"></div></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

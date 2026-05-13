@@ -1,0 +1,38 @@
+  bonusBadge: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 5,
+  },
+  bonusText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  closeBtn: {
+    padding: 5,
+  },
+  weatherBanner: {
+    padding: 15,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 15,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+  },
+  weatherTitle: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  weatherDesc: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+  },
+});

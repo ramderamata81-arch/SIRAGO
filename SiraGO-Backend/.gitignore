@@ -1,2 +1,8 @@
 node_modules
 .env
+uploads/
+error.log
+*.log
+
+# Scripts temporaires de migration/test
+fix_schema_live.js
